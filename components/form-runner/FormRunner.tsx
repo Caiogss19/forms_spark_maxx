@@ -4,9 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+
 import { resolveNextStep } from "@/lib/branching";
 import { interpolate } from "@/lib/interpolate";
 import {
+  findActiveDisqualifier,
   resolveTheme,
   type FormDefinition,
   type Step,
@@ -15,6 +17,7 @@ import { findStep, useFormStore, type AnswerValue } from "@/lib/store";
 import { useFormSubmit } from "@/lib/use-form-submit";
 import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
+import { DisqualifierModal } from "./DisqualifierModal";
 import { KeyboardHints } from "./KeyboardHints";
 import { ProgressBar } from "./ProgressBar";
 import { StepRenderer } from "./StepRenderer";
@@ -87,6 +90,20 @@ export function FormRunner({ form, embedded = false }: Props) {
 
   const step = findStep(form.steps, currentStepId);
 
+  const disqualifier = useMemo(
+    () => findActiveDisqualifier(form, answers),
+    [form, answers],
+  );
+  // Acknowledged-key pattern: storing the key (instead of a boolean reset
+  // via effect) means switching to a different disqualifying option
+  // naturally re-opens the modal.
+  const disqualifierKey = disqualifier
+    ? `${disqualifier.stepId}:${disqualifier.optionValue}`
+    : null;
+  const [acknowledgedKey, setAcknowledgedKey] = useState<string | null>(null);
+  const showDisqualifier =
+    disqualifier !== null && disqualifierKey !== acknowledgedKey;
+
   /**
    * Intercepts advance BEFORE the linear next-step jump. Returns false to
    * abort navigation (validation/submit failed). Submits when the upcoming
@@ -95,6 +112,9 @@ export function FormRunner({ form, embedded = false }: Props) {
   const onBeforeAdvance = useCallback(async (): Promise<boolean> => {
     const state = useFormStore.getState();
     if (!state.currentStepId) return true;
+    // Hard-block when a disqualifying option is selected anywhere in the
+    // form. The modal already explains why; we just refuse to advance.
+    if (form && findActiveDisqualifier(form, state.answers)) return false;
     const nextId = resolveNextStep({
       currentStepId: state.currentStepId,
       steps: state.steps,
@@ -105,7 +125,7 @@ export function FormRunner({ form, embedded = false }: Props) {
     if (!shouldSubmit) return true;
     const result = await submit();
     return result.ok;
-  }, [submit]);
+  }, [submit, form]);
 
   const themeVars = useMemo(() => {
     const t = resolveTheme(form.theme);
@@ -194,11 +214,19 @@ export function FormRunner({ form, embedded = false }: Props) {
                 onBeforeAdvance={onBeforeAdvance}
                 history={history}
                 status={status}
+                blocked={Boolean(disqualifier)}
               />
             </motion.div>
           </AnimatePresence>
         )}
       </main>
+
+      {showDisqualifier && disqualifier ? (
+        <DisqualifierModal
+          config={disqualifier.config}
+          onClose={() => setAcknowledgedKey(disqualifierKey)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -217,6 +245,7 @@ interface StepViewProps {
   onBeforeAdvance: () => Promise<boolean>;
   history: string[];
   status: string;
+  blocked: boolean;
 }
 
 function StepView({
@@ -229,6 +258,7 @@ function StepView({
   onBeforeAdvance,
   history,
   status,
+  blocked,
 }: StepViewProps) {
   const [error, setError] = useState<string | null>(null);
   const submitHandlerRef = useRef<
@@ -334,8 +364,8 @@ function StepView({
             <KeyboardHints
               ctaLabel={isSubmitting ? "Enviando…" : ctaLabel}
               onAdvance={() => void advance()}
-              ctaDisabled={isSubmitting}
-              hideEnterHint={isSubmitting}
+              ctaDisabled={isSubmitting || blocked}
+              hideEnterHint={isSubmitting || blocked}
             />
           ) : null}
         </div>

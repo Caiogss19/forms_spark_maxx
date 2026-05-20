@@ -23,11 +23,20 @@ export const FIELD_TYPES = [
 export const FieldType = z.enum(FIELD_TYPES);
 export type FieldTypeValue = z.infer<typeof FieldType>;
 
+export const DisqualifyConfigSchema = z.object({
+  title: z.string().optional(),
+  message: z.string().min(1),
+  ctaLabel: z.string().optional(),
+  ctaUrl: z.string().optional(),
+});
+export type DisqualifyConfig = z.infer<typeof DisqualifyConfigSchema>;
+
 export const StepOptionSchema = z.object({
   value: z.string(),
   label: z.string(),
   emoji: z.string().optional(),
   description: z.string().optional(),
+  disqualify: DisqualifyConfigSchema.optional(),
 });
 export type StepOption = z.infer<typeof StepOptionSchema>;
 
@@ -156,4 +165,35 @@ export function safeParseForm(input: unknown) {
 
 export function parseForm(input: unknown): FormDefinition {
   return FormSchema.parse(input);
+}
+
+/**
+ * Walks the form steps and answers; returns the first disqualifier
+ * config triggered by a currently-selected option, or null. Used by the
+ * runner to gate advancement and surface a blocking modal.
+ */
+export function findActiveDisqualifier(
+  form: FormDefinition,
+  answers: Record<string, unknown>,
+): { config: DisqualifyConfig; stepId: string; optionValue: string } | null {
+  for (const step of form.steps) {
+    if (!step.options || step.options.length === 0) continue;
+    const key = step.mapTo ?? step.id;
+    const answer = answers[key];
+    if (answer == null || answer === "") continue;
+    const selectedValues = Array.isArray(answer)
+      ? (answer as unknown[]).map(String)
+      : [String(answer)];
+    for (const sv of selectedValues) {
+      const opt = step.options.find((o) => o.value === sv);
+      if (opt?.disqualify) {
+        return {
+          config: opt.disqualify,
+          stepId: step.id,
+          optionValue: opt.value,
+        };
+      }
+    }
+  }
+  return null;
 }

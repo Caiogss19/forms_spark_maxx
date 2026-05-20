@@ -243,6 +243,24 @@ export function FormEditor({ initialForm }: Props) {
                 }
               />
             </Field>
+            <Field label="Webhook URL (sobrescreve N8N_WEBHOOK_URL pra esse form)" full>
+              <Input
+                placeholder="https://… (deixe vazio pra usar o webhook padrão do projeto)"
+                value={form.webhookUrl ?? ""}
+                onChange={(e) =>
+                  patch({ webhookUrl: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Webhook Authorization header (opcional)" full>
+              <Input
+                placeholder="Ex.: Bearer abc123 (deixe vazio pra usar N8N_WEBHOOK_AUTH)"
+                value={form.webhookAuth ?? ""}
+                onChange={(e) =>
+                  patch({ webhookAuth: e.target.value || undefined })
+                }
+              />
+            </Field>
           </div>
         </section>
 
@@ -634,30 +652,41 @@ function OptionsEditor({
       <span className="text-xs font-medium text-muted-foreground">
         Opções ({options.length})
       </span>
-      <ul className="mt-1.5 space-y-1.5">
+      <ul className="mt-1.5 space-y-3">
         {options.map((opt, i) => (
-          <li key={i} className="flex items-center gap-2">
-            <Input
-              value={opt.value}
-              onChange={(e) => update(i, { value: e.target.value })}
-              placeholder="value"
-              className="h-9 max-w-[150px] text-xs"
+          <li
+            key={i}
+            className="space-y-2 rounded-lg border border-border/60 bg-background/40 p-2"
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                value={opt.value}
+                onChange={(e) => update(i, { value: e.target.value })}
+                placeholder="value"
+                className="h-9 max-w-[150px] text-xs"
+              />
+              <Input
+                value={opt.label}
+                onChange={(e) => update(i, { label: e.target.value })}
+                placeholder="Label visível"
+                className="h-9 flex-1 text-sm"
+              />
+              <Input
+                value={opt.emoji ?? ""}
+                onChange={(e) =>
+                  update(i, { emoji: e.target.value || undefined })
+                }
+                placeholder="🚀"
+                className="h-9 w-14 text-center text-xs"
+              />
+              <IconBtn onClick={() => remove(i)} title="Remover" destructive>
+                <Trash2 className="h-3.5 w-3.5" />
+              </IconBtn>
+            </div>
+            <DisqualifierEditor
+              value={opt.disqualify}
+              onChange={(d) => update(i, { disqualify: d })}
             />
-            <Input
-              value={opt.label}
-              onChange={(e) => update(i, { label: e.target.value })}
-              placeholder="Label visível"
-              className="h-9 flex-1 text-sm"
-            />
-            <Input
-              value={opt.emoji ?? ""}
-              onChange={(e) => update(i, { emoji: e.target.value || undefined })}
-              placeholder="🚀"
-              className="h-9 w-14 text-center text-xs"
-            />
-            <IconBtn onClick={() => remove(i)} title="Remover" destructive>
-              <Trash2 className="h-3.5 w-3.5" />
-            </IconBtn>
           </li>
         ))}
       </ul>
@@ -668,6 +697,86 @@ function OptionsEditor({
       >
         <Plus className="h-3 w-3" /> Adicionar opção
       </button>
+    </div>
+  );
+}
+
+function DisqualifierEditor({
+  value,
+  onChange,
+}: {
+  value: StepOption["disqualify"];
+  onChange: (v: StepOption["disqualify"]) => void;
+}) {
+  const enabled = Boolean(value);
+
+  function toggle(on: boolean) {
+    if (on) {
+      onChange({
+        title: value?.title ?? "Não foi dessa vez",
+        message:
+          value?.message ??
+          "Esse formulário não é pra esse perfil. Mas a gente tem outros caminhos pra você.",
+        ctaLabel: value?.ctaLabel ?? "",
+        ctaUrl: value?.ctaUrl ?? "",
+      });
+    } else {
+      onChange(undefined);
+    }
+  }
+
+  function patch(p: Partial<NonNullable<StepOption["disqualify"]>>) {
+    if (!value) return;
+    onChange({ ...value, ...p });
+  }
+
+  return (
+    <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-2">
+      <label className="flex cursor-pointer items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => toggle(e.target.checked)}
+          className="h-3.5 w-3.5"
+        />
+        <span className="font-medium">Bloquear quando essa opção for selecionada</span>
+        <span className="text-muted-foreground">
+          (popup impede de avançar)
+        </span>
+      </label>
+      {enabled ? (
+        <div className="mt-3 grid gap-2">
+          <Input
+            placeholder="Título do popup (ex.: Não foi dessa vez)"
+            value={value?.title ?? ""}
+            onChange={(e) => patch({ title: e.target.value || undefined })}
+            className="h-9 text-sm"
+          />
+          <Textarea
+            placeholder="Mensagem que o usuário vai ver no popup"
+            rows={3}
+            value={value?.message ?? ""}
+            onChange={(e) => patch({ message: e.target.value })}
+            className="text-sm"
+          />
+          <div className="grid gap-2 md:grid-cols-2">
+            <Input
+              placeholder="Texto do botão CTA (opcional)"
+              value={value?.ctaLabel ?? ""}
+              onChange={(e) =>
+                patch({ ctaLabel: e.target.value || undefined })
+              }
+              className="h-9 text-xs"
+            />
+            <Input
+              placeholder="Link do CTA (https://… opcional)"
+              value={value?.ctaUrl ?? ""}
+              onChange={(e) => patch({ ctaUrl: e.target.value || undefined })}
+              className="h-9 text-xs"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

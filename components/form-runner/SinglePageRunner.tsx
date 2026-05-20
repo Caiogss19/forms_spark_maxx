@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { interpolate } from "@/lib/interpolate";
 import {
+  findActiveDisqualifier,
   resolveTheme,
   type FormDefinition,
   type Step,
@@ -14,6 +15,7 @@ import { useFormStore, type AnswerValue } from "@/lib/store";
 import { useFormSubmit } from "@/lib/use-form-submit";
 import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
+import { DisqualifierModal } from "./DisqualifierModal";
 import { StepRenderer } from "./StepRenderer";
 
 interface Props {
@@ -123,8 +125,20 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
     return allOk;
   }, []);
 
+  const disqualifier = useMemo(
+    () => findActiveDisqualifier(form, answers),
+    [form, answers],
+  );
+  const disqualifierKey = disqualifier
+    ? `${disqualifier.stepId}:${disqualifier.optionValue}`
+    : null;
+  const [acknowledgedKey, setAcknowledgedKey] = useState<string | null>(null);
+  const showDisqualifier =
+    disqualifier !== null && disqualifierKey !== acknowledgedKey;
+
   const onSubmit = useCallback(async () => {
     if (status === "submitting") return;
+    if (disqualifier) return;
     const valid = await runValidation();
     if (!valid) {
       // Scroll the first error into view so the user knows what to fix.
@@ -135,7 +149,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       return;
     }
     await submit();
-  }, [runValidation, status, submit]);
+  }, [runValidation, status, submit, disqualifier]);
 
   // Input fields call `advance` on Enter / single_choice auto-advance.
   // In single_page mode that maps to "submit the whole form".
@@ -265,7 +279,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
 
             <button
               type="submit"
-              disabled={status === "submitting"}
+              disabled={status === "submitting" || Boolean(disqualifier)}
               style={{
                 borderRadius: "var(--form-input-radius, 0.5rem)",
               }}
@@ -279,6 +293,13 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
           </form>
         </div>
       </main>
+
+      {showDisqualifier && disqualifier ? (
+        <DisqualifierModal
+          config={disqualifier.config}
+          onClose={() => setAcknowledgedKey(disqualifierKey)}
+        />
+      ) : null}
     </div>
   );
 }
