@@ -106,15 +106,22 @@ export function captureTracking(): TrackingData {
 
   // When embedded via embed.js, the host script appends the parent's URL
   // and referrer so we report the actual landing page, not the iframe.
-  const parentUrl = params.get("_p");
-  const parentReferrer = params.get("_pr");
+  // Reject "about:srcdoc" — that's what Framer / Webflow pass when their
+  // wrapper iframe couldn't resolve the real host page (e.g. embed.js
+  // ran with location.href === "about:srcdoc" inside a nested srcdoc).
+  function realUrl(v: string | null): string | null {
+    if (!v) return null;
+    if (/^about:/i.test(v)) return null;
+    return v;
+  }
+  const parentUrl = realUrl(params.get("_p"));
+  const parentReferrer = realUrl(params.get("_pr"));
   // When the iframe is sitting inside any host page, document.referrer
   // resolves to the parent URL (same-origin or cross-origin, modern
   // browsers). Use it as a fallback when the host's embed.js is older
   // than the version that passes _p explicitly.
   const isIframed = window.parent !== window;
-  const iframeFallbackUrl =
-    isIframed && document.referrer ? document.referrer : null;
+  const iframeFallbackUrl = isIframed ? realUrl(document.referrer) : null;
   const ownUrl = (() => {
     // Strip the embed-only params from our own URL so a fallback to
     // window.location doesn't leak them into the payload.

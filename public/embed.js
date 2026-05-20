@@ -11,6 +11,59 @@
 
   var iframesBySlug = {};
 
+  /**
+   * Returns the URL of the page the user is actually looking at. Handles
+   * three nesting cases:
+   *  1. Plain embed (snippet on the page itself): location.href is right.
+   *  2. Framer/Webflow/etc. that wrap the snippet in a srcdoc iframe:
+   *     location.href === "about:srcdoc"; document.referrer is the host.
+   *  3. Same-origin nested iframes: window.top.location.href is the truth.
+   */
+  function resolveHostUrl() {
+    try {
+      if (window.top && window.top !== window) {
+        var topHref = window.top.location.href;
+        if (topHref) return topHref;
+      }
+    } catch (e) {
+      /* cross-origin: can't read window.top */
+    }
+    if (/^about:/i.test(location.href) && document.referrer) {
+      return document.referrer;
+    }
+    return location.href;
+  }
+
+  function resolveHostReferrer() {
+    try {
+      if (window.top && window.top !== window) {
+        return window.top.document.referrer || "";
+      }
+    } catch (e) {
+      /* cross-origin */
+    }
+    // In a srcdoc iframe we already consumed document.referrer as the
+    // host URL, so we can't surface a true upstream referrer.
+    if (/^about:/i.test(location.href)) return "";
+    return document.referrer || "";
+  }
+
+  function resolveHostQuery() {
+    try {
+      if (window.top && window.top !== window) {
+        return new URL(window.top.location.href).searchParams;
+      }
+    } catch (e) {
+      /* cross-origin */
+    }
+    var hostUrl = resolveHostUrl();
+    try {
+      return new URL(hostUrl).searchParams;
+    } catch (e) {
+      return new URLSearchParams();
+    }
+  }
+
   function getCookie(name) {
     var target = name + "=";
     var parts = document.cookie ? document.cookie.split(";") : [];
@@ -28,8 +81,8 @@
   }
 
   function buildTrackingPayload() {
-    var url = new URL(location.href);
-    var qs = url.searchParams;
+    var hostUrl = resolveHostUrl();
+    var qs = resolveHostQuery();
     var keys = [
       "utm_source",
       "utm_medium",
@@ -42,9 +95,9 @@
       "msclkid",
     ];
     var payload = {
-      referrer: document.referrer || "",
-      landing_page: location.href,
-      page_url: location.href,
+      referrer: resolveHostReferrer(),
+      landing_page: hostUrl,
+      page_url: hostUrl,
     };
     for (var i = 0; i < keys.length; i++) {
       var v = qs.get(keys[i]);
@@ -72,7 +125,7 @@
 
     // Forward UTMs into the iframe URL so the form sees them even before
     // postMessage fires (covers the very first SSR render).
-    var parentQs = new URL(location.href).searchParams;
+    var parentQs = resolveHostQuery();
     var fwdKeys = [
       "utm_source",
       "utm_medium",
@@ -95,8 +148,8 @@
     // iframe's own /embed/<slug>) on first paint. Avoids the postMessage
     // race that previously left landing_page pointing at the iframe URL.
     src +=
-      (hasQuery ? "&" : "?") + "_p=" + encodeURIComponent(location.href);
-    src += "&_pr=" + encodeURIComponent(document.referrer || "");
+      (hasQuery ? "&" : "?") + "_p=" + encodeURIComponent(resolveHostUrl());
+    src += "&_pr=" + encodeURIComponent(resolveHostReferrer());
 
     var iframe = document.createElement("iframe");
     iframe.src = src;
