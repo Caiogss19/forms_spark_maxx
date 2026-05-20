@@ -1,0 +1,187 @@
+{
+  "slug": "demo-spark",
+  "title": "Demo Spark Forms",
+  "description": "Showcase de todos os 17 tipos de campo — use como referência ao criar novos formulários.",
+  "estimatedMinutes": 2,
+  "language": "pt-BR",
+  "conversionIdentifier": "Demo - Spark Forms",
+  "product": "generico",
+  "tags": ["forms", "demo", "spark"],
+  "successMessage": "Tudo certo! Esse era só um demo — o lead não foi enviado.",
+  "hiddenFields": [
+    { "key": "campaign", "default": "demo" }
+  ],
+  "theme": {
+    "primary": "#0A0A0A",
+    "mode": "auto"
+  },
+  "steps": [
+    {
+      "id": "intro",
+      "type": "statement",
+      "title": "Oi! Esse é o Spark Forms",
+      "subtitle": "Uma demo rápida de todos os tipos de campo. Use Enter pra avançar e Shift+Tab pra voltar.",
+      "cta": "Bora começar"
+    },
+    {
+      "id": "name",
+      "type": "short_text",
+      "title": "Qual seu nome completo?",
+      "placeholder": "Maria Silva",
+      "required": true,
+      "validation": { "min": 2, "max": 80 },
+      "mapTo": "name"
+    },
+    {
+      "id": "email",
+      "type": "email",
+      "title": "E qual seu e-mail corporativo, {{name}}?",
+      "subtitle": "Sem Gmail/Hotmail. Quanto mais agilizamos a qualificação, melhor.",
+      "placeholder": "voce@empresa.com.br",
+      "required": true,
+      "validation": { "corporateOnly": true },
+      "messages": {
+        "blockedDomain": "Use seu e-mail corporativo pra agilizarmos seu atendimento."
+      },
+      "mapTo": "email"
+    },
+    {
+      "id": "phone",
+      "type": "phone",
+      "title": "Telefone com DDD",
+      "placeholder": "(11) 99999-9999",
+      "required": true,
+      "mapTo": "mobile_phone"
+    },
+    {
+      "id": "company_name",
+      "type": "short_text",
+      "title": "Nome da empresa",
+      "required": true,
+      "mapTo": "company_name"
+    },
+    {
+      "id": "role",
+      "type": "single_choice",
+      "title": "Qual seu cargo?",
+      "required": true,
+      "mapTo": "cargo",
+      "options": [
+        { "value": "founder", "label": "Founder / CEO", "emoji": "🚀" },
+        { "value": "cmo", "label": "CMO / Diretor(a) de marketing", "emoji": "🎯" },
+        { "value": "marketing", "label": "Marketing / Growth", "emoji": "📈" },
+        { "value": "social_media", "label": "Social Media", "emoji": "📱" },
+        { "value": "other", "label": "Outro", "emoji": "👋" }
+      ]
+    },
+    {
+      "id": "company_size",
+      "type": "dropdown",
+      "title": "Tamanho da empresa",
+      "placeholder": "Selecione o porte",
+      "required": true,
+      "mapTo": "tamanho_da_empresa",
+      "options": [
+        { "value": "1-10", "label": "1 a 10 pessoas" },
+        { "value": "11-50", "label": "11 a 50 pessoas" },
+        { "value": "51-200", "label": "51 a 200 pessoas" },
+        { "value": "201-1000", "label": "201 a 1000 pessoas" },
+        { "value": "1000+", "label": "1000+ pessoas" }
+      ]
+    },
+    {
+      "id": "channels",
+      "type": "multi_choice",
+      "title": "Em quais canais você já roda marketing de influência?",
+      "subtitle": "Pode marcar mais de um.",
+      "mapTo": "canais_ativos",
+      "options": [
+        { "value": "instagram", "label": "Instagram", "emoji": "📷" },
+        { "value": "tiktok", "label": "TikTok", "emoji": "🎵" },
+        { "value": "youtube", "label": "YouTube", "emoji": "▶️" },
+        { "value": "linkedin", "label": "LinkedIn", "emoji": "💼" },
+        { "value": "nenhum", "label": "Ainda nenhum", "emoji": "🌱" }
+      ]
+    },
+    {
+      "id": "budget",
+      "type": "currency",
+      "title": "Qual seu budget mensal pra influência?",
+      "placeholder": "R$ 0,00",
+      "required": true,
+      "validation": { "min": 0 },
+      "mapTo": "cf_budget_mensalmente_em_mkt_influencia"
+    },
+    {
+      "id": "nps",
+      "type": "scale",
+      "title": "De 0 a 10, quanto você se considera no marketing de influência?",
+      "subtitle": "0 = nunca rodei, 10 = sou um expert.",
+      "required": true,
+      "mapTo": "self_nps",
+      "validation": { "min": 0, "max": 10 }
+    },
+    {
+      "id": "rating",
+      "type": "rating",
+      "title": "Que nota você dá pra estratégia atual da sua empresa?",
+      "validation": { "max": 5 },
+      "mapTo": "rating_estrategia"
+    },
+    {
+      "id": "launch_date",
+      "type": "date",
+      "title": "Quando pretende lançar a próxima campanha?",
+      "mapTo": "data_lancamento_prevista"
+    },
+    {
+      "id": "campaigns_per_year",
+      "type": "number",
+      "title": "Quantas campanhas você roda por ano?",
+      "placeholder": "12",
+      "validation": { "min": 0, "max": 200 },
+      "mapTo": "campanhas_por_ano"
+    },
+    {
+      "id": "website",
+      "type": "url",
+      "title": "Link do site da empresa",
+      "placeholder": "https://...",
+      "mapTo": "website"
+    },
+    {
+      "id": "context",
+      "type": "long_text",
+      "title": "Conta um pouco sobre o desafio que você quer resolver",
+      "subtitle": "Quanto mais contexto, melhor a gente prepara a conversa.",
+      "validation": { "max": 1000 },
+      "mapTo": "contexto_desafio"
+    },
+    {
+      "id": "deck",
+      "type": "file",
+      "title": "Tem algum deck ou apresentação pra compartilhar?",
+      "subtitle": "Opcional. PDF até 10MB.",
+      "validation": {
+        "maxFileSizeMB": 10,
+        "acceptedMimeTypes": ["application/pdf"]
+      },
+      "mapTo": "deck_url"
+    },
+    {
+      "id": "consent",
+      "type": "consent",
+      "title": "Tudo certo pra gente entrar em contato?",
+      "subtitle": "Ao continuar, você aceita nossa Política de Privacidade e o uso dos dados pra contato comercial (LGPD).",
+      "required": true,
+      "cta": "Aceito e quero finalizar",
+      "mapTo": "consent_lgpd"
+    },
+    {
+      "id": "obrigado",
+      "type": "thank_you",
+      "title": "Tudo certo, {{name}}!",
+      "subtitle": "Recebemos suas respostas. Vamos te chamar em até 24 horas úteis."
+    }
+  ]
+}
