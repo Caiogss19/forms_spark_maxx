@@ -1,6 +1,17 @@
 import { create } from "zustand";
 
 import type { FormDefinition, Step } from "@/lib/schema";
+import {
+  STORAGE_KEYS,
+  readJSON,
+  safeGetLocal,
+  safeRemoveLocal,
+  safeSetLocal,
+} from "@/lib/storage";
+import {
+  mergeTracking,
+  type TrackingData,
+} from "@/lib/tracking";
 
 export type AnswerValue =
   | string
@@ -27,13 +38,18 @@ interface FormStore {
   answers: Answers;
   status: RunnerStatus;
   errorMessage: string | null;
+  tracking: TrackingData;
+  hiddenFields: Record<string, string>;
 
   setForm: (form: FormDefinition, initialAnswers?: Answers) => void;
   setAnswer: (id: string, value: AnswerValue) => void;
+  setTracking: (incoming: TrackingData) => void;
+  setHiddenFields: (values: Record<string, string>) => void;
   goTo: (stepId: string) => void;
   goNext: (resolveNext: (state: SnapshotState) => string | null) => void;
   goPrev: () => void;
   setStatus: (status: RunnerStatus, errorMessage?: string | null) => void;
+  clearPersistedAnswers: () => void;
   reset: () => void;
 }
 
@@ -43,6 +59,48 @@ export type SnapshotState = {
   answers: Answers;
 };
 
+interface PersistedAnswers {
+  answers: Answers;
+  currentStepId: string | null;
+  history: string[];
+  savedAt: string;
+  schemaVersion: number;
+}
+
+const ANSWERS_SCHEMA_VERSION = 1;
+const ANSWERS_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+function loadPersistedAnswers(slug: string): PersistedAnswers | null {
+  const raw = safeGetLocal(STORAGE_KEYS.answers(slug));
+  const parsed = readJSON<PersistedAnswers>(raw);
+  if (!parsed || parsed.schemaVersion !== ANSWERS_SCHEMA_VERSION) {
+    return null;
+  }
+  const age = Date.now() - new Date(parsed.savedAt).getTime();
+  if (Number.isNaN(age) || age > ANSWERS_MAX_AGE_MS) return null;
+  return parsed;
+}
+
+function persistAnswers(
+  slug: string,
+  answers: Answers,
+  currentStepId: string | null,
+  history: string[],
+) {
+  const payload: PersistedAnswers = {
+    answers,
+    currentStepId,
+    history,
+    savedAt: new Date().toISOString(),
+    schemaVersion: ANSWERS_SCHEMA_VERSION,
+  };
+  try {
+    safeSetLocal(STORAGE_KEYS.answers(slug), JSON.stringify(payload));
+  } catch {
+    /* ignore */
+  }
+}
+
 export const useFormStore = create<FormStore>((set, get) => ({
   form: null,
   steps: [],
@@ -51,32 +109,67 @@ export const useFormStore = create<FormStore>((set, get) => ({
   answers: {},
   status: "idle",
   errorMessage: null,
+  tracking: {},
+  hiddenFields: {},
 
-  setForm: (form, initialAnswers = {}) =>
+  setForm: (form, initialAnswers = {}) => {
+    const persisted = loadPersistedAnswers(form.slug);
+    const stepIds = new Set(form.steps.map((s) => s.id));
+    const validHistory =
+      persisted?.history.filter((id) => stepIds.has(id)) ?? [];
+    const resumeStepId =
+      persisted?.currentStepId && stepIds.has(persisted.currentStepId)
+        ? persisted.currentStepId
+        : (form.steps[0]?.id ?? null);
+
     set({
       form,
       steps: form.steps,
-      currentStepId: form.steps[0]?.id ?? null,
-      history: [],
-      answers: initialAnswers,
+      currentStepId: resumeStepId,
+      history: validHistory,
+      answers: { ...(persisted?.answers ?? {}), ...initialAnswers },
       status: "running",
       errorMessage: null,
-    }),
+    });
+  },
 
-  setAnswer: (id, value) =>
-    set((state) => ({ answers: { ...state.answers, [id]: value } })),
-
-  goTo: (stepId) =>
+  setAnswer: (id, value) => {
     set((state) => {
-      if (!state.steps.find((s) => s.id === stepId)) return state;
-      if (stepId === state.currentStepId) return state;
-      return {
-        history: state.currentStepId
-          ? [...state.history, state.currentStepId]
-          : state.history,
-        currentStepId: stepId,
-      };
-    }),
+      const nextAnswers = { ...state.answers, [id]: value };
+      if (state.form) {
+        persistAnswers(
+          state.form.slug,
+          nextAnswers,
+          state.currentStepId,
+          state.history,
+        );
+      }
+      return { answers: nextAnswers };
+    });
+  },
+
+  setTracking: (incoming) => {
+    set((state) => ({ tracking: mergeTracking(state.tracking, incoming) }));
+  },
+
+  setHiddenFields: (values) => {
+    set((state) => ({
+      hiddenFields: { ...state.hiddenFields, ...values },
+    }));
+  },
+
+  goTo: (stepId) => {
+    const state = get();
+    if (!state.steps.find((s) => s.id === stepId)) return;
+    if (stepId === state.currentStepId) return;
+    const nextHistory = state.currentStepId
+      ? [...state.history, state.currentStepId]
+      : state.history;
+    set({ history: nextHistory, currentStepId: stepId });
+    if (state.form) {
+      persistAnswers(state.form.slug, state.answers, stepId, nextHistory);
+    }
+  },
 
   goNext: (resolveNext) => {
     const state = get();
@@ -87,25 +180,34 @@ export const useFormStore = create<FormStore>((set, get) => ({
       answers: state.answers,
     });
     if (!next) return;
-    set({
-      history: [...state.history, state.currentStepId],
-      currentStepId: next,
-    });
+    const nextHistory = [...state.history, state.currentStepId];
+    set({ history: nextHistory, currentStepId: next });
+    if (state.form) {
+      persistAnswers(state.form.slug, state.answers, next, nextHistory);
+    }
   },
 
-  goPrev: () =>
-    set((state) => {
-      if (state.history.length === 0) return state;
-      const prev = state.history[state.history.length - 1];
-      return {
-        currentStepId: prev,
-        history: state.history.slice(0, -1),
-      };
-    }),
+  goPrev: () => {
+    const state = get();
+    if (state.history.length === 0) return;
+    const prev = state.history[state.history.length - 1];
+    const nextHistory = state.history.slice(0, -1);
+    set({ currentStepId: prev, history: nextHistory });
+    if (state.form) {
+      persistAnswers(state.form.slug, state.answers, prev, nextHistory);
+    }
+  },
 
   setStatus: (status, errorMessage = null) => set({ status, errorMessage }),
 
-  reset: () =>
+  clearPersistedAnswers: () => {
+    const state = get();
+    if (state.form) safeRemoveLocal(STORAGE_KEYS.answers(state.form.slug));
+  },
+
+  reset: () => {
+    const state = get();
+    if (state.form) safeRemoveLocal(STORAGE_KEYS.answers(state.form.slug));
     set({
       form: null,
       steps: [],
@@ -114,7 +216,10 @@ export const useFormStore = create<FormStore>((set, get) => ({
       answers: {},
       status: "idle",
       errorMessage: null,
-    }),
+      tracking: {},
+      hiddenFields: {},
+    });
+  },
 }));
 
 export function findStep(steps: Step[], id: string | null) {

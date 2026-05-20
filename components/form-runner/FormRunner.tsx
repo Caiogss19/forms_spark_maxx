@@ -16,6 +16,7 @@ import {
   useFormStore,
   type AnswerValue,
 } from "@/lib/store";
+import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
 import { KeyboardHints } from "./KeyboardHints";
 import { ProgressBar } from "./ProgressBar";
@@ -40,6 +41,8 @@ export function FormRunner({ form, embedded = false }: Props) {
   useEffect(() => {
     setForm(form);
   }, [form, setForm]);
+
+  useTrackingCapture(form);
 
   const step = findStep(form.steps, currentStepId);
 
