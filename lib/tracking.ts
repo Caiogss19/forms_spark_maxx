@@ -108,6 +108,13 @@ export function captureTracking(): TrackingData {
   // and referrer so we report the actual landing page, not the iframe.
   const parentUrl = params.get("_p");
   const parentReferrer = params.get("_pr");
+  // When the iframe is sitting inside any host page, document.referrer
+  // resolves to the parent URL (same-origin or cross-origin, modern
+  // browsers). Use it as a fallback when the host's embed.js is older
+  // than the version that passes _p explicitly.
+  const isIframed = window.parent !== window;
+  const iframeFallbackUrl =
+    isIframed && document.referrer ? document.referrer : null;
   const ownUrl = (() => {
     // Strip the embed-only params from our own URL so a fallback to
     // window.location doesn't leak them into the payload.
@@ -141,9 +148,11 @@ export function captureTracking(): TrackingData {
 
   const snapshot: TrackingData = {
     ...fromQuery,
-    referrer: parentReferrer || document.referrer || undefined,
-    landing_page: parentUrl || ownUrl,
-    page_url: parentUrl || ownUrl,
+    referrer:
+      parentReferrer ||
+      (isIframed ? undefined : document.referrer || undefined),
+    landing_page: parentUrl || iframeFallbackUrl || ownUrl,
+    page_url: parentUrl || iframeFallbackUrl || ownUrl,
     user_agent: ua,
     device: detectDevice(ua),
     language: navigator.language,

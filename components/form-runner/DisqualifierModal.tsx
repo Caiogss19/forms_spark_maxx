@@ -32,7 +32,7 @@ export function DisqualifierModal({ config, onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-3"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -45,7 +45,7 @@ export function DisqualifierModal({ config, onClose }: Props) {
           color: "var(--form-foreground, var(--foreground))",
           borderRadius: "var(--form-card-radius, 1rem)",
         }}
-        className="relative flex w-full max-w-md flex-col gap-5 border border-border p-7 shadow-2xl"
+        className="relative flex max-h-[90%] w-full max-w-md flex-col gap-3 overflow-y-auto border border-border p-4 shadow-2xl sm:gap-5 sm:p-7"
       >
         <button
           type="button"
@@ -61,24 +61,24 @@ export function DisqualifierModal({ config, onClose }: Props) {
             background: "var(--form-primary, var(--primary))",
             color: "var(--form-primary-foreground, var(--primary-foreground))",
           }}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full sm:h-10 sm:w-10"
         >
-          <AlertCircle className="h-5 w-5" aria-hidden />
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           <h2
             id="disqualifier-title"
-            className="text-xl font-semibold tracking-tight"
+            className="pr-6 text-base font-semibold tracking-tight sm:text-xl"
           >
             {config.title ?? "Não foi dessa vez"}
           </h2>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]">
+          <p className="whitespace-pre-line text-xs leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))] sm:text-sm">
             {config.message}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-1 sm:gap-3">
           {hasCta ? (
             <a
               href={config.ctaUrl}
@@ -90,17 +90,17 @@ export function DisqualifierModal({ config, onClose }: Props) {
                   "var(--form-primary-foreground, var(--primary-foreground))",
                 borderRadius: "var(--form-input-radius, 0.5rem)",
               }}
-              className="inline-flex h-11 items-center gap-1.5 px-5 text-sm font-medium transition-opacity hover:opacity-90"
+              className="inline-flex h-9 items-center gap-1.5 px-3 text-xs font-medium transition-opacity hover:opacity-90 sm:h-11 sm:px-5 sm:text-sm"
             >
               {ctaLabel}
-              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+              <ArrowUpRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
             </a>
           ) : null}
           <button
             type="button"
             onClick={onClose}
             style={{ borderRadius: "var(--form-input-radius, 0.5rem)" }}
-            className="inline-flex h-11 items-center px-4 text-sm font-medium text-[var(--form-muted-foreground,var(--muted-foreground))] transition-colors hover:bg-muted hover:text-[var(--form-foreground,var(--foreground))]"
+            className="inline-flex h-9 items-center px-3 text-xs font-medium text-[var(--form-muted-foreground,var(--muted-foreground))] transition-colors hover:bg-muted hover:text-[var(--form-foreground,var(--foreground))] sm:h-11 sm:px-4 sm:text-sm"
           >
             Voltar e alterar resposta
           </button>

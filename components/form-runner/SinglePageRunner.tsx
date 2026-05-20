@@ -185,7 +185,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
     }
   }, [disqualifier, form.steps, answers, setAnswer]);
 
-  useDisqualifierBridge({
+  const { hostReady } = useDisqualifierBridge({
     form,
     embedded,
     disqualifier,
@@ -410,7 +410,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         </div>
       </main>
 
-      {disqualifier ? (
+      {disqualifier && !hostReady ? (
         <DisqualifierModal
           config={disqualifier.config}
           onClose={dismissDisqualifier}

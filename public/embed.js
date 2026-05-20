@@ -116,6 +116,18 @@
 
     iframe.addEventListener("load", function () {
       try {
+        // Handshake: tells the iframe that this host has the latest
+        // embed.js (with the disqualifier overlay handler). The iframe
+        // suppresses its in-form modal once it sees this, so the popup
+        // only renders here, full-viewport on the parent page.
+        iframe.contentWindow.postMessage(
+          {
+            type: "spark-forms:host-ready",
+            version: 2,
+            slug: slug,
+          },
+          "*",
+        );
         iframe.contentWindow.postMessage(
           { type: "spark-forms:tracking", payload: buildTrackingPayload() },
           "*",
@@ -349,6 +361,26 @@
   function handleMessage(event) {
     var data = event.data;
     if (!data || typeof data !== "object") return;
+
+    // Iframe announces it's listening — re-send host-ready so the form
+    // can suppress its in-form fallback modal even if the initial
+    // post-on-load fired before the iframe's listener was wired up.
+    if (data.type === "spark-forms:iframe-ready") {
+      try {
+        event.source &&
+          event.source.postMessage(
+            {
+              type: "spark-forms:host-ready",
+              version: 2,
+              slug: data.slug,
+            },
+            "*",
+          );
+      } catch (e) {
+        /* ignore */
+      }
+      return;
+    }
 
     if (data.type === "spark-forms:resize" && typeof data.height === "number") {
       var iframe = data.slug ? iframesBySlug[data.slug] : null;
