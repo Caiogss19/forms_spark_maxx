@@ -407,7 +407,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         </div>
       </main>
 
-      {disqualifier && !embedded ? (
+      {disqualifier ? (
         <DisqualifierModal
           config={disqualifier.config}
           onClose={dismissDisqualifier}
