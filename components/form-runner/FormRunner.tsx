@@ -22,6 +22,7 @@ import { KeyboardHints } from "./KeyboardHints";
 import { ProgressBar } from "./ProgressBar";
 import { StepRenderer } from "./StepRenderer";
 import { StepShell } from "./StepShell";
+import { useDisqualifierBridge } from "./useDisqualifierBridge";
 
 interface Props {
   form: FormDefinition;
@@ -112,6 +113,13 @@ export function FormRunner({ form, embedded = false }: Props) {
       setAnswer(key, null);
     }
   }, [disqualifier, form.steps, answers, setAnswer]);
+
+  useDisqualifierBridge({
+    form,
+    embedded,
+    disqualifier,
+    onDismissFromParent: dismissDisqualifier,
+  });
 
   /**
    * Intercepts advance BEFORE the linear next-step jump. Returns false to
@@ -238,7 +246,7 @@ export function FormRunner({ form, embedded = false }: Props) {
         </footer>
       ) : null}
 
-      {disqualifier ? (
+      {disqualifier && !embedded ? (
         <DisqualifierModal
           config={disqualifier.config}
           onClose={dismissDisqualifier}

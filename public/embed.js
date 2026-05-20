@@ -124,6 +124,221 @@
     });
   }
 
+  // ─── Disqualifier modal (parent-page overlay) ─────────────────────
+  var disqualifierEl = null;
+  var disqualifierSourceWindow = null;
+  var disqualifierSlug = null;
+
+  function notifyDismissed() {
+    if (!disqualifierSourceWindow) return;
+    try {
+      disqualifierSourceWindow.postMessage(
+        {
+          type: "spark-forms:disqualifier-dismissed",
+          slug: disqualifierSlug,
+        },
+        "*",
+      );
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function closeDisqualifier() {
+    if (!disqualifierEl) return;
+    notifyDismissed();
+    if (disqualifierEl.parentNode) {
+      disqualifierEl.parentNode.removeChild(disqualifierEl);
+    }
+    disqualifierEl = null;
+    disqualifierSourceWindow = null;
+    disqualifierSlug = null;
+    document.documentElement.style.overflow = "";
+    document.removeEventListener("keydown", onDisqualifierKey);
+  }
+
+  function onDisqualifierKey(e) {
+    if (e.key === "Escape") closeDisqualifier();
+  }
+
+  function showDisqualifier(config, theme, sourceWindow, slug) {
+    if (disqualifierEl) closeDisqualifier();
+    disqualifierSourceWindow = sourceWindow;
+    disqualifierSlug = slug;
+
+    var t = theme || {};
+    var bg = t.background || "#FFFFFF";
+    var fg = t.foreground || "#0A0A0A";
+    var primary = t.primary || "#0A0A0A";
+    var primaryFg = t.primaryForeground || "#FFFFFF";
+    var radius = t.radius || "1rem";
+
+    var overlay = document.createElement("div");
+    overlay.setAttribute("data-spark-disqualifier", "1");
+    overlay.style.cssText = [
+      "position:fixed",
+      "inset:0",
+      "z-index:2147483647",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "padding:16px",
+      "background:rgba(0,0,0,0.7)",
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif",
+      "animation:sparkFormsFadeIn 200ms ease",
+    ].join(";");
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay) closeDisqualifier();
+    });
+
+    var card = document.createElement("div");
+    card.style.cssText = [
+      "position:relative",
+      "width:100%",
+      "max-width:420px",
+      "padding:28px",
+      "background:" + bg,
+      "color:" + fg,
+      "border-radius:" + radius,
+      "box-shadow:0 24px 64px rgba(0,0,0,0.45)",
+      "animation:sparkFormsPop 220ms cubic-bezier(0.22,1,0.36,1)",
+    ].join(";");
+    card.addEventListener("click", function (e) {
+      e.stopPropagation();
+    });
+
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Fechar");
+    closeBtn.innerHTML =
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    closeBtn.style.cssText = [
+      "position:absolute",
+      "top:12px",
+      "right:12px",
+      "background:transparent",
+      "border:0",
+      "padding:6px",
+      "border-radius:6px",
+      "cursor:pointer",
+      "color:" + fg,
+      "opacity:0.6",
+    ].join(";");
+    closeBtn.addEventListener("mouseenter", function () {
+      closeBtn.style.opacity = "1";
+    });
+    closeBtn.addEventListener("mouseleave", function () {
+      closeBtn.style.opacity = "0.6";
+    });
+    closeBtn.addEventListener("click", closeDisqualifier);
+
+    var icon = document.createElement("div");
+    icon.innerHTML =
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    icon.style.cssText = [
+      "display:inline-flex",
+      "align-items:center",
+      "justify-content:center",
+      "width:40px",
+      "height:40px",
+      "border-radius:9999px",
+      "background:" + primary,
+      "color:" + primaryFg,
+      "margin-bottom:18px",
+    ].join(";");
+
+    var title = document.createElement("h2");
+    title.textContent = config.title || "Não foi dessa vez";
+    title.style.cssText = [
+      "margin:0 0 8px",
+      "font-size:20px",
+      "font-weight:600",
+      "letter-spacing:-0.01em",
+      "color:" + fg,
+    ].join(";");
+
+    var msg = document.createElement("p");
+    msg.textContent = config.message || "";
+    msg.style.cssText = [
+      "margin:0 0 22px",
+      "font-size:14px",
+      "line-height:1.55",
+      "white-space:pre-line",
+      "opacity:0.75",
+    ].join(";");
+
+    var actions = document.createElement("div");
+    actions.style.cssText = [
+      "display:flex",
+      "flex-wrap:wrap",
+      "align-items:center",
+      "gap:12px",
+    ].join(";");
+
+    if (config.ctaUrl) {
+      var cta = document.createElement("a");
+      cta.href = config.ctaUrl;
+      cta.target = "_blank";
+      cta.rel = "noopener noreferrer";
+      cta.textContent = config.ctaLabel || "Saiba mais";
+      cta.style.cssText = [
+        "display:inline-flex",
+        "align-items:center",
+        "height:42px",
+        "padding:0 20px",
+        "background:" + primary,
+        "color:" + primaryFg,
+        "border-radius:8px",
+        "font-size:14px",
+        "font-weight:500",
+        "text-decoration:none",
+      ].join(";");
+      actions.appendChild(cta);
+    }
+
+    var altBtn = document.createElement("button");
+    altBtn.type = "button";
+    altBtn.textContent = "Voltar e alterar resposta";
+    altBtn.style.cssText = [
+      "display:inline-flex",
+      "align-items:center",
+      "height:42px",
+      "padding:0 16px",
+      "background:transparent",
+      "border:0",
+      "border-radius:8px",
+      "font-size:14px",
+      "font-weight:500",
+      "color:" + fg,
+      "opacity:0.65",
+      "cursor:pointer",
+    ].join(";");
+    altBtn.addEventListener("click", closeDisqualifier);
+    actions.appendChild(altBtn);
+
+    card.appendChild(closeBtn);
+    card.appendChild(icon);
+    card.appendChild(title);
+    card.appendChild(msg);
+    card.appendChild(actions);
+    overlay.appendChild(card);
+
+    if (!document.getElementById("spark-forms-disqualifier-styles")) {
+      var style = document.createElement("style");
+      style.id = "spark-forms-disqualifier-styles";
+      style.textContent =
+        "@keyframes sparkFormsFadeIn{from{opacity:0}to{opacity:1}}" +
+        "@keyframes sparkFormsPop{from{opacity:0;transform:translateY(8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}";
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(overlay);
+    document.documentElement.style.overflow = "hidden";
+    disqualifierEl = overlay;
+
+    document.addEventListener("keydown", onDisqualifierKey);
+  }
+
   function handleMessage(event) {
     var data = event.data;
     if (!data || typeof data !== "object") return;
@@ -140,6 +355,25 @@
         }
       }
       if (iframe) iframe.style.height = Math.max(120, data.height) + "px";
+      return;
+    }
+
+    if (data.type === "spark-forms:disqualifier-show") {
+      showDisqualifier(
+        data.config || {},
+        data.theme || {},
+        event.source,
+        data.slug,
+      );
+      return;
+    }
+    if (data.type === "spark-forms:disqualifier-hide") {
+      // Only close if the hide is for our current modal.
+      if (disqualifierEl && (!data.slug || data.slug === disqualifierSlug)) {
+        // Clear without re-notifying iframe (the iframe already knows).
+        disqualifierSourceWindow = null;
+        closeDisqualifier();
+      }
       return;
     }
 

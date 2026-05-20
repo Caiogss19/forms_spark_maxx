@@ -18,6 +18,7 @@ import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
 import { DisqualifierModal } from "./DisqualifierModal";
 import { StepRenderer } from "./StepRenderer";
+import { useDisqualifierBridge } from "./useDisqualifierBridge";
 
 interface Props {
   form: FormDefinition;
@@ -183,6 +184,13 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       setAnswer(key, null);
     }
   }, [disqualifier, form.steps, answers, setAnswer]);
+
+  useDisqualifierBridge({
+    form,
+    embedded,
+    disqualifier,
+    onDismissFromParent: dismissDisqualifier,
+  });
 
   const onSubmit = useCallback(async () => {
     if (status === "submitting") return;
@@ -399,7 +407,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         </div>
       </main>
 
-      {disqualifier ? (
+      {disqualifier && !embedded ? (
         <DisqualifierModal
           config={disqualifier.config}
           onClose={dismissDisqualifier}
