@@ -29,6 +29,14 @@ interface Props {
   initialForm: FormDefinition;
 }
 
+const WEIGHT_OPTIONS = [
+  { value: "300", label: "Light (300)" },
+  { value: "400", label: "Regular (400)" },
+  { value: "500", label: "Medium (500)" },
+  { value: "600", label: "Semibold (600)" },
+  { value: "700", label: "Bold (700)" },
+];
+
 export function FormEditor({ initialForm }: Props) {
   const [form, setForm] = useState<FormDefinition>(initialForm);
   const [saving, setSaving] = useState(false);
@@ -364,6 +372,178 @@ export function FormEditor({ initialForm }: Props) {
               checked={form.theme?.showFormChrome !== false}
               onChange={(v) => patchTheme({ showFormChrome: v })}
             />
+          </div>
+        </section>
+
+        {/* Structure / chrome toggles */}
+        <section className="rounded-2xl border border-border p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Estrutura e fundo
+          </h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Pra embedar no Framer/Webflow, deixe os fundos transparentes pra
+            o form herdar a aparência da página pai.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <CheckboxField
+              label="Fundo do form transparente"
+              checked={Boolean(form.theme?.transparentBackground)}
+              onChange={(v) =>
+                patchTheme({ transparentBackground: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Fundo do card interno transparente"
+              checked={Boolean(form.theme?.transparentCard)}
+              onChange={(v) =>
+                patchTheme({ transparentCard: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Remover bordas dos inputs"
+              checked={Boolean(form.theme?.hideInputBorder)}
+              onChange={(v) =>
+                patchTheme({ hideInputBorder: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Remover sombra do card"
+              checked={Boolean(form.theme?.hideCardShadow)}
+              onChange={(v) =>
+                patchTheme({ hideCardShadow: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Remover padding do form (cola nas bordas)"
+              checked={Boolean(form.theme?.removeFormPadding)}
+              onChange={(v) =>
+                patchTheme({ removeFormPadding: v || undefined })
+              }
+            />
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <ColorField
+              label="Cor da borda do card"
+              value={form.theme?.cardBorderColor ?? ""}
+              onChange={(v) =>
+                patchTheme({ cardBorderColor: v || undefined })
+              }
+            />
+            <Field label="Largura da borda do card (CSS)">
+              <Input
+                placeholder="ex.: 1px / 2px / 0"
+                value={form.theme?.cardBorderWidth ?? ""}
+                onChange={(e) =>
+                  patchTheme({ cardBorderWidth: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Largura da borda dos inputs (CSS)">
+              <Input
+                placeholder="default: 1px"
+                value={form.theme?.inputBorderWidth ?? ""}
+                onChange={(e) =>
+                  patchTheme({ inputBorderWidth: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Sombra do card (CSS box-shadow)">
+              <Input
+                placeholder="ex.: 0 4px 24px rgba(0,0,0,0.08)"
+                value={form.theme?.cardShadow ?? ""}
+                onChange={(e) =>
+                  patchTheme({ cardShadow: e.target.value || undefined })
+                }
+              />
+            </Field>
+          </div>
+        </section>
+
+        {/* Per-element colors and typography weights */}
+        <section className="rounded-2xl border border-border p-5">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Cores e tipografia por elemento
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <ColorField
+              label="Cor do título"
+              value={form.theme?.titleColor ?? ""}
+              onChange={(v) => patchTheme({ titleColor: v || undefined })}
+            />
+            <ColorField
+              label="Cor da descrição"
+              value={form.theme?.descriptionColor ?? ""}
+              onChange={(v) =>
+                patchTheme({ descriptionColor: v || undefined })
+              }
+            />
+            <ColorField
+              label="Cor das labels"
+              value={form.theme?.labelColor ?? ""}
+              onChange={(v) => patchTheme({ labelColor: v || undefined })}
+            />
+            <ColorField
+              label="Cor de erro / asterisco obrigatório"
+              value={form.theme?.errorColor ?? ""}
+              onChange={(v) => patchTheme({ errorColor: v || undefined })}
+            />
+            <Field label="Peso da fonte do título">
+              <Select
+                value={form.theme?.titleWeight ?? "600"}
+                onChange={(v) => patchTheme({ titleWeight: v })}
+                options={WEIGHT_OPTIONS}
+              />
+            </Field>
+            <Field label="Peso da fonte das labels">
+              <Select
+                value={form.theme?.labelWeight ?? "500"}
+                onChange={(v) => patchTheme({ labelWeight: v })}
+                options={WEIGHT_OPTIONS}
+              />
+            </Field>
+            <Field label="Peso da fonte do CTA">
+              <Select
+                value={form.theme?.ctaWeight ?? "500"}
+                onChange={(v) => patchTheme({ ctaWeight: v })}
+                options={WEIGHT_OPTIONS}
+              />
+            </Field>
+          </div>
+        </section>
+
+        {/* CTA-specific overrides */}
+        <section className="rounded-2xl border border-border p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Botão CTA (Enviar)
+          </h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Por padrão usa as cores de &quot;Botão primário&quot;. Aqui você
+            sobrescreve só pro CTA.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <ColorField
+              label="Fundo do CTA"
+              value={form.theme?.ctaBackground ?? ""}
+              onChange={(v) =>
+                patchTheme({ ctaBackground: v || undefined })
+              }
+            />
+            <ColorField
+              label="Cor do texto do CTA"
+              value={form.theme?.ctaForeground ?? ""}
+              onChange={(v) =>
+                patchTheme({ ctaForeground: v || undefined })
+              }
+            />
+            <Field label="Raio do CTA (CSS)">
+              <Input
+                placeholder="ex.: 9999px / 0.5rem / 0"
+                value={form.theme?.ctaRadius ?? ""}
+                onChange={(e) =>
+                  patchTheme({ ctaRadius: e.target.value || undefined })
+                }
+              />
+            </Field>
           </div>
         </section>
 

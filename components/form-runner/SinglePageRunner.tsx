@@ -97,16 +97,25 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
   const themeVars = useMemo(() => {
     const t = resolveTheme(form.theme);
     const o = form.theme ?? {};
+    const formBg = o.transparentBackground ? "transparent" : t.background;
+    const cardBg = o.transparentCard
+      ? "transparent"
+      : (o.cardBackground ?? "transparent");
+    const inputBorder = o.hideInputBorder
+      ? "transparent"
+      : (o.inputBorder ?? "var(--border)");
     return {
       "--form-primary": t.primary,
       "--form-primary-foreground": o.primaryForeground ?? "#FFFFFF",
-      "--form-background": t.background,
+      "--form-background": formBg,
       "--form-foreground": t.foreground,
-      "--form-card-bg": o.cardBackground ?? "transparent",
+      "--form-card-bg": cardBg,
       "--form-card-radius": o.cardBorderRadius ?? "1rem",
       "--form-input-bg": o.inputBackground ?? "transparent",
-      "--form-input-border": o.inputBorder ?? "var(--border)",
-      "--form-input-focus-border": o.inputBorder ?? "var(--foreground)",
+      "--form-input-border": inputBorder,
+      "--form-input-focus-border": o.hideInputBorder
+        ? "transparent"
+        : (o.inputBorder ?? "var(--foreground)"),
       "--form-input-radius": o.inputRadius ?? "0.5rem",
       "--form-input-placeholder":
         o.mutedForeground ?? "var(--muted-foreground)",
@@ -115,6 +124,9 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       // Pipe sizing into the inputs/dropdown shared CSS vars.
       "--form-input-height": sizes.inputHeight,
       "--form-input-text-size": sizes.inputTextSize,
+      "--form-input-border-width": o.hideInputBorder
+        ? "0"
+        : (o.inputBorderWidth ?? "1px"),
     } as React.CSSProperties;
   }, [form.theme, sizes.inputHeight, sizes.inputTextSize]);
 
@@ -259,13 +271,19 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         style={{
           maxWidth: sizes.formWidth,
           minHeight: sizes.formMinHeight,
-          padding: sizes.formPadding,
+          padding: form.theme?.removeFormPadding ? "0" : sizes.formPadding,
         }}
       >
         <div
           style={{
             background: "var(--form-card-bg)",
             borderRadius: "var(--form-card-radius)",
+            borderStyle: form.theme?.cardBorderWidth ? "solid" : undefined,
+            borderWidth: form.theme?.cardBorderWidth,
+            borderColor: form.theme?.cardBorderColor,
+            boxShadow: form.theme?.hideCardShadow
+              ? "none"
+              : form.theme?.cardShadow,
           }}
         >
           <header
@@ -273,15 +291,25 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
             style={{ marginBottom: sizes.formPadding }}
           >
             <h1
-              className="font-semibold tracking-tight"
-              style={{ fontSize: sizes.titleSize, lineHeight: "1.2" }}
+              className="tracking-tight"
+              style={{
+                fontSize: sizes.titleSize,
+                lineHeight: "1.2",
+                color: form.theme?.titleColor,
+                fontWeight: form.theme?.titleWeight ?? "600",
+              }}
             >
               {interpolate(form.title, answers)}
             </h1>
             {form.description ? (
               <p
-                className="leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]"
-                style={{ fontSize: sizes.descriptionSize }}
+                className="leading-relaxed"
+                style={{
+                  fontSize: sizes.descriptionSize,
+                  color:
+                    form.theme?.descriptionColor ??
+                    "var(--form-muted-foreground,var(--muted-foreground))",
+                }}
               >
                 {interpolate(form.description, answers)}
               </p>
@@ -310,6 +338,9 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
                 redirectUrl={form.redirectOnSuccess}
                 showLabels={showLabels}
                 labelTextSize={sizes.inputTextSize}
+                labelColor={form.theme?.labelColor}
+                labelWeight={form.theme?.labelWeight}
+                errorColor={form.theme?.errorColor}
               />
             ))}
 
@@ -317,8 +348,11 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               <p
                 role="alert"
                 data-spark-error
-                className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive"
-                style={{ fontSize: sizes.inputTextSize }}
+                className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3"
+                style={{
+                  fontSize: sizes.inputTextSize,
+                  color: form.theme?.errorColor ?? "var(--destructive)",
+                }}
               >
                 {errorMessage}
               </p>
@@ -328,12 +362,20 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               type="submit"
               disabled={status === "submitting" || Boolean(disqualifier)}
               style={{
-                borderRadius: "var(--form-input-radius, 0.5rem)",
+                borderRadius:
+                  form.theme?.ctaRadius ?? "var(--form-input-radius, 0.5rem)",
                 marginTop: sizes.ctaGap,
                 height: sizes.ctaHeight,
                 fontSize: sizes.ctaTextSize,
+                fontWeight: form.theme?.ctaWeight ?? "500",
+                background:
+                  form.theme?.ctaBackground ??
+                  "var(--form-primary,var(--primary))",
+                color:
+                  form.theme?.ctaForeground ??
+                  "var(--form-primary-foreground,var(--primary-foreground))",
               }}
-              className="inline-flex w-full items-center justify-center gap-2 bg-[var(--form-primary,var(--primary))] px-6 font-medium text-[var(--form-primary-foreground,var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 px-6 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === "submitting"
                 ? "Enviando…"
@@ -403,6 +445,9 @@ interface FieldRowProps {
   redirectUrl?: string;
   showLabels?: boolean;
   labelTextSize?: string;
+  labelColor?: string;
+  labelWeight?: string;
+  errorColor?: string;
 }
 
 function FieldRow({
@@ -417,6 +462,9 @@ function FieldRow({
   redirectUrl,
   showLabels = true,
   labelTextSize,
+  labelColor,
+  labelWeight,
+  errorColor,
 }: FieldRowProps) {
   if (step.type === "statement") {
     return (
@@ -449,12 +497,20 @@ function FieldRow({
         <div>
           <label
             htmlFor={`f-${step.id}`}
-            className="block font-medium leading-tight"
-            style={labelTextSize ? { fontSize: labelTextSize } : undefined}
+            className="block leading-tight"
+            style={{
+              fontSize: labelTextSize,
+              color: labelColor,
+              fontWeight: labelWeight ?? "500",
+            }}
           >
             {interpolate(step.title, answers)}
             {step.required ? (
-              <span className="ml-1 text-destructive" aria-hidden>
+              <span
+                className="ml-1"
+                style={{ color: errorColor ?? "var(--destructive)" }}
+                aria-hidden
+              >
                 *
               </span>
             ) : null}

@@ -13,6 +13,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         fontSize: "var(--form-input-text-size, 1rem)",
         borderRadius: "var(--form-input-radius, 0.5rem)",
         background: "var(--form-input-bg, transparent)",
+        borderWidth: "var(--form-input-border-width, 1px)",
         ...style,
       }}
       className={cn(

@@ -122,6 +122,30 @@ export const ThemeSchema = z.object({
   ctaHeight: z.string().optional(),
   ctaTextSize: z.string().optional(),
   lgpdSize: z.string().optional(),
+  // Backgrounds / chrome toggles — critical for embedding into Framer,
+  // Webflow, etc. where the form should inherit the parent page's bg.
+  transparentBackground: z.boolean().optional(),
+  transparentCard: z.boolean().optional(),
+  hideInputBorder: z.boolean().optional(),
+  hideCardShadow: z.boolean().optional(),
+  removeFormPadding: z.boolean().optional(),
+  // Per-element colors (string CSS values).
+  titleColor: z.string().optional(),
+  labelColor: z.string().optional(),
+  descriptionColor: z.string().optional(),
+  errorColor: z.string().optional(),
+  cardBorderColor: z.string().optional(),
+  cardBorderWidth: z.string().optional(),
+  inputBorderWidth: z.string().optional(),
+  cardShadow: z.string().optional(),
+  // Typography weights — "300" | "400" | "500" | "600" | "700".
+  titleWeight: z.string().optional(),
+  labelWeight: z.string().optional(),
+  ctaWeight: z.string().optional(),
+  // CTA color overrides (independent of "primary").
+  ctaBackground: z.string().optional(),
+  ctaForeground: z.string().optional(),
+  ctaRadius: z.string().optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 
