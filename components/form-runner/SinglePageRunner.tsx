@@ -8,6 +8,7 @@ import { interpolate } from "@/lib/interpolate";
 import {
   findActiveDisqualifier,
   resolveTheme,
+  SIZE_DEFAULTS,
   type FormDefinition,
   type Step,
 } from "@/lib/schema";
@@ -75,6 +76,24 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
     },
   });
 
+  const sizes = useMemo(() => {
+    const o = form.theme ?? {};
+    return {
+      formWidth: o.formWidth ?? SIZE_DEFAULTS.formWidth,
+      formMinHeight: o.formMinHeight ?? SIZE_DEFAULTS.formMinHeight,
+      formPadding: o.formPadding ?? SIZE_DEFAULTS.formPadding,
+      titleSize: o.titleSize ?? SIZE_DEFAULTS.titleSize,
+      descriptionSize: o.descriptionSize ?? SIZE_DEFAULTS.descriptionSize,
+      inputHeight: o.inputHeight ?? SIZE_DEFAULTS.inputHeight,
+      inputTextSize: o.inputTextSize ?? SIZE_DEFAULTS.inputTextSize,
+      fieldGap: o.fieldGap ?? SIZE_DEFAULTS.fieldGap,
+      ctaGap: o.ctaGap ?? SIZE_DEFAULTS.ctaGap,
+      ctaHeight: o.ctaHeight ?? SIZE_DEFAULTS.ctaHeight,
+      ctaTextSize: o.ctaTextSize ?? SIZE_DEFAULTS.ctaTextSize,
+      lgpdSize: o.lgpdSize ?? SIZE_DEFAULTS.lgpdSize,
+    };
+  }, [form.theme]);
+
   const themeVars = useMemo(() => {
     const t = resolveTheme(form.theme);
     const o = form.theme ?? {};
@@ -93,13 +112,11 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         o.mutedForeground ?? "var(--muted-foreground)",
       "--form-muted-foreground":
         o.mutedForeground ?? "var(--muted-foreground)",
-      // Compact-form spec: 390px width, 486px ideal height, 20px padding,
-      // 22px title, 40px label height, 14px label text, 10px between
-      // fields, 30px before CTA.
-      "--form-input-height": "40px",
-      "--form-input-text-size": "14px",
+      // Pipe sizing into the inputs/dropdown shared CSS vars.
+      "--form-input-height": sizes.inputHeight,
+      "--form-input-text-size": sizes.inputTextSize,
     } as React.CSSProperties;
-  }, [form.theme]);
+  }, [form.theme, sizes.inputHeight, sizes.inputTextSize]);
 
   const showLabels = form.theme?.showLabels !== false;
   const titleAlign = form.theme?.titleAlign ?? "left";
@@ -240,9 +257,9 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       <main
         className="mx-auto w-full flex-1"
         style={{
-          maxWidth: "390px",
-          minHeight: "486px",
-          padding: "20px",
+          maxWidth: sizes.formWidth,
+          minHeight: sizes.formMinHeight,
+          padding: sizes.formPadding,
         }}
       >
         <div
@@ -253,18 +270,18 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         >
           <header
             className={titleAlign === "center" ? "space-y-2 text-center" : "space-y-2"}
-            style={{ marginBottom: "20px" }}
+            style={{ marginBottom: sizes.formPadding }}
           >
             <h1
               className="font-semibold tracking-tight"
-              style={{ fontSize: "22px", lineHeight: "1.2" }}
+              style={{ fontSize: sizes.titleSize, lineHeight: "1.2" }}
             >
               {interpolate(form.title, answers)}
             </h1>
             {form.description ? (
               <p
                 className="leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]"
-                style={{ fontSize: "13px" }}
+                style={{ fontSize: sizes.descriptionSize }}
               >
                 {interpolate(form.description, answers)}
               </p>
@@ -277,7 +294,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               void onSubmit();
             }}
             noValidate
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            style={{ display: "flex", flexDirection: "column", gap: sizes.fieldGap }}
           >
             {inputSteps.map((step, index) => (
               <FieldRow
@@ -292,6 +309,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
                 error={errors[step.id] ?? null}
                 redirectUrl={form.redirectOnSuccess}
                 showLabels={showLabels}
+                labelTextSize={sizes.inputTextSize}
               />
             ))}
 
@@ -300,7 +318,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
                 role="alert"
                 data-spark-error
                 className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive"
-                style={{ fontSize: "14px" }}
+                style={{ fontSize: sizes.inputTextSize }}
               >
                 {errorMessage}
               </p>
@@ -311,9 +329,9 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               disabled={status === "submitting" || Boolean(disqualifier)}
               style={{
                 borderRadius: "var(--form-input-radius, 0.5rem)",
-                marginTop: "30px",
-                height: "40px",
-                fontSize: "14px",
+                marginTop: sizes.ctaGap,
+                height: sizes.ctaHeight,
+                fontSize: sizes.ctaTextSize,
               }}
               className="inline-flex w-full items-center justify-center gap-2 bg-[var(--form-primary,var(--primary))] px-6 font-medium text-[var(--form-primary-foreground,var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -326,7 +344,11 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
             {form.lgpdNotice ? (
               <p
                 className="whitespace-pre-line text-[var(--form-muted-foreground,var(--muted-foreground))]"
-                style={{ fontSize: "11px", lineHeight: "1.5", marginTop: "12px" }}
+                style={{
+                  fontSize: sizes.lgpdSize,
+                  lineHeight: "1.5",
+                  marginTop: "12px",
+                }}
               >
                 {form.lgpdNotice}
               </p>
@@ -380,6 +402,7 @@ interface FieldRowProps {
   error: string | null;
   redirectUrl?: string;
   showLabels?: boolean;
+  labelTextSize?: string;
 }
 
 function FieldRow({
@@ -393,6 +416,7 @@ function FieldRow({
   error,
   redirectUrl,
   showLabels = true,
+  labelTextSize,
 }: FieldRowProps) {
   if (step.type === "statement") {
     return (
@@ -425,7 +449,8 @@ function FieldRow({
         <div>
           <label
             htmlFor={`f-${step.id}`}
-            className="block text-sm font-medium leading-tight"
+            className="block font-medium leading-tight"
+            style={labelTextSize ? { fontSize: labelTextSize } : undefined}
           >
             {interpolate(step.title, answers)}
             {step.required ? (

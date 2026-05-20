@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   FIELD_TYPES,
   FormSchema,
+  SIZE_DEFAULTS,
   type FormDefinition,
   type Step,
   type StepOption,
@@ -366,6 +367,115 @@ export function FormEditor({ initialForm }: Props) {
           </div>
         </section>
 
+        {/* Sizes (single_page layout) */}
+        <section className="rounded-2xl border border-border p-5">
+          <div className="mb-1 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Dimensões e tipografia (single page)
+            </h2>
+            <button
+              type="button"
+              onClick={() =>
+                patchTheme({
+                  formWidth: undefined,
+                  formMinHeight: undefined,
+                  formPadding: undefined,
+                  titleSize: undefined,
+                  descriptionSize: undefined,
+                  inputHeight: undefined,
+                  inputTextSize: undefined,
+                  fieldGap: undefined,
+                  ctaGap: undefined,
+                  ctaHeight: undefined,
+                  ctaTextSize: undefined,
+                  lgpdSize: undefined,
+                })
+              }
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Resetar pros defaults
+            </button>
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Aceita qualquer unidade CSS (px, rem, em, %). Deixe vazio pra
+            usar o default. Aplica-se ao layout <code>single_page</code>.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SizeField
+              label="Largura do form"
+              placeholder={SIZE_DEFAULTS.formWidth}
+              value={form.theme?.formWidth}
+              onChange={(v) => patchTheme({ formWidth: v })}
+            />
+            <SizeField
+              label="Altura mínima do form"
+              placeholder={SIZE_DEFAULTS.formMinHeight}
+              value={form.theme?.formMinHeight}
+              onChange={(v) => patchTheme({ formMinHeight: v })}
+            />
+            <SizeField
+              label="Padding interno do form"
+              placeholder={SIZE_DEFAULTS.formPadding}
+              value={form.theme?.formPadding}
+              onChange={(v) => patchTheme({ formPadding: v })}
+            />
+            <SizeField
+              label="Tamanho do título"
+              placeholder={SIZE_DEFAULTS.titleSize}
+              value={form.theme?.titleSize}
+              onChange={(v) => patchTheme({ titleSize: v })}
+            />
+            <SizeField
+              label="Tamanho da descrição"
+              placeholder={SIZE_DEFAULTS.descriptionSize}
+              value={form.theme?.descriptionSize}
+              onChange={(v) => patchTheme({ descriptionSize: v })}
+            />
+            <SizeField
+              label="Altura dos campos / labels"
+              placeholder={SIZE_DEFAULTS.inputHeight}
+              value={form.theme?.inputHeight}
+              onChange={(v) => patchTheme({ inputHeight: v })}
+            />
+            <SizeField
+              label="Tamanho do texto dos campos"
+              placeholder={SIZE_DEFAULTS.inputTextSize}
+              value={form.theme?.inputTextSize}
+              onChange={(v) => patchTheme({ inputTextSize: v })}
+            />
+            <SizeField
+              label="Espaçamento entre campos"
+              placeholder={SIZE_DEFAULTS.fieldGap}
+              value={form.theme?.fieldGap}
+              onChange={(v) => patchTheme({ fieldGap: v })}
+            />
+            <SizeField
+              label="Espaçamento antes do CTA"
+              placeholder={SIZE_DEFAULTS.ctaGap}
+              value={form.theme?.ctaGap}
+              onChange={(v) => patchTheme({ ctaGap: v })}
+            />
+            <SizeField
+              label="Altura do botão CTA"
+              placeholder={SIZE_DEFAULTS.ctaHeight}
+              value={form.theme?.ctaHeight}
+              onChange={(v) => patchTheme({ ctaHeight: v })}
+            />
+            <SizeField
+              label="Tamanho do texto do CTA"
+              placeholder={SIZE_DEFAULTS.ctaTextSize}
+              value={form.theme?.ctaTextSize}
+              onChange={(v) => patchTheme({ ctaTextSize: v })}
+            />
+            <SizeField
+              label="Tamanho do aviso LGPD"
+              placeholder={SIZE_DEFAULTS.lgpdSize}
+              value={form.theme?.lgpdSize}
+              onChange={(v) => patchTheme({ lgpdSize: v })}
+            />
+          </div>
+        </section>
+
         {/* Steps */}
         <section className="rounded-2xl border border-border p-5">
           <div className="mb-4 flex items-center justify-between">
@@ -437,6 +547,29 @@ function Field({
     <label className={cn("block space-y-1.5", full && "md:col-span-2")}>
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
+    </label>
+  );
+}
+
+function SizeField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (v: string | undefined) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <Input
+        value={value ?? ""}
+        placeholder={`default: ${placeholder}`}
+        onChange={(e) => onChange(e.target.value || undefined)}
+      />
     </label>
   );
 }

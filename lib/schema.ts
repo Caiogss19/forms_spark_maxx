@@ -108,8 +108,37 @@ export const ThemeSchema = z.object({
   showLabels: z.boolean().optional(),
   titleAlign: z.enum(["left", "center"]).optional(),
   showFormChrome: z.boolean().optional(),
+  // Single-page sizing — CSS values (px/rem/em/%). Defaults match the
+  // compact-form spec used in production embeds.
+  formWidth: z.string().optional(),
+  formMinHeight: z.string().optional(),
+  formPadding: z.string().optional(),
+  titleSize: z.string().optional(),
+  descriptionSize: z.string().optional(),
+  inputHeight: z.string().optional(),
+  inputTextSize: z.string().optional(),
+  fieldGap: z.string().optional(),
+  ctaGap: z.string().optional(),
+  ctaHeight: z.string().optional(),
+  ctaTextSize: z.string().optional(),
+  lgpdSize: z.string().optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
+
+export const SIZE_DEFAULTS = {
+  formWidth: "390px",
+  formMinHeight: "486px",
+  formPadding: "20px",
+  titleSize: "22px",
+  descriptionSize: "13px",
+  inputHeight: "40px",
+  inputTextSize: "14px",
+  fieldGap: "10px",
+  ctaGap: "30px",
+  ctaHeight: "40px",
+  ctaTextSize: "14px",
+  lgpdSize: "11px",
+} as const;
 
 export const DEFAULT_THEME: Required<
   Pick<Theme, "primary" | "background" | "foreground" | "fontFamily" | "mode">
