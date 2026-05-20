@@ -1,7 +1,9 @@
 "use client";
 
 import { Code2, Copy, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
 
 import { cn } from "@/lib/utils";
 
@@ -35,10 +37,20 @@ export function EmbedButton({ slug, variant = "default", label = "Embed" }: Prop
 }
 
 function EmbedModal({ slug, onClose }: { slug: string; onClose: () => void }) {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://forms.spark.com.br";
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const origin = window.location.origin;
 
   const snippet = `<div data-spark-form="${slug}" data-spark-min-height="640px"></div>
 <script async src="${origin}/embed.js"></script>`;
@@ -51,16 +63,18 @@ function EmbedModal({ slug, onClose }: { slug: string; onClose: () => void }) {
 
   const directUrl = `${origin}/f/${slug}`;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-2xl"
+        className="relative flex max-h-[90vh] w-full max-w-xl flex-col rounded-2xl border border-border bg-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
           <div>
             <h3 className="text-lg font-semibold tracking-tight">
               Embedar no Framer (ou qualquer site)
@@ -78,7 +92,7 @@ function EmbedModal({ slug, onClose }: { slug: string; onClose: () => void }) {
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="space-y-5">
+        <div className="space-y-5 overflow-y-auto px-6 py-5">
           <CopyBlock
             title="Snippet (recomendado pro Framer)"
             hint="Auto-resize, encaminha UTMs/cookies da página pai, dispara spark:submission no submit."
@@ -104,7 +118,8 @@ function EmbedModal({ slug, onClose }: { slug: string; onClose: () => void }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
