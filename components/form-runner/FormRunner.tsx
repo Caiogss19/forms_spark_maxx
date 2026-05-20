@@ -16,6 +16,7 @@ import {
   useFormStore,
   type AnswerValue,
 } from "@/lib/store";
+import { useFormSubmit } from "@/lib/use-form-submit";
 import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
 import { KeyboardHints } from "./KeyboardHints";
@@ -37,6 +38,7 @@ export function FormRunner({ form, embedded = false }: Props) {
   const goPrev = useFormStore((s) => s.goPrev);
   const history = useFormStore((s) => s.history);
   const status = useFormStore((s) => s.status);
+  const clearPersistedAnswers = useFormStore((s) => s.clearPersistedAnswers);
 
   useEffect(() => {
     setForm(form);
@@ -44,7 +46,47 @@ export function FormRunner({ form, embedded = false }: Props) {
 
   useTrackingCapture(form);
 
+  const honeypotRef = useRef<HTMLInputElement | null>(null);
+  const { submit } = useFormSubmit({
+    form,
+    honeypotRef,
+    onSuccess: (submissionId) => {
+      clearPersistedAnswers();
+      if (typeof window !== "undefined") {
+        window.parent?.postMessage(
+          { type: "spark-forms:submitted", submissionId, slug: form.slug },
+          "*",
+        );
+      }
+      if (form.redirectOnSuccess) {
+        setTimeout(() => {
+          window.location.href = form.redirectOnSuccess!;
+        }, 1500);
+      }
+    },
+  });
+
   const step = findStep(form.steps, currentStepId);
+
+  /**
+   * Intercepts advance BEFORE the linear next-step jump. Returns false to
+   * abort navigation (validation/submit failed). Submits when the upcoming
+   * step is a thank_you or when there is no next step.
+   */
+  const onBeforeAdvance = useCallback(async (): Promise<boolean> => {
+    const state = useFormStore.getState();
+    if (!state.currentStepId) return true;
+    const nextId = defaultLinearNext({
+      currentStepId: state.currentStepId,
+      steps: state.steps,
+      answers: state.answers,
+    });
+    const nextStep = nextId ? state.steps.find((s) => s.id === nextId) : null;
+    const shouldSubmit = !nextStep || nextStep.type === "thank_you";
+    if (!shouldSubmit) return true;
+    const result = await submit();
+    return result.ok;
+  }, [submit]);
 
   const themeVars = useMemo(() => {
     const t = resolveTheme(form.theme);
@@ -90,6 +132,23 @@ export function FormRunner({ form, embedded = false }: Props) {
         </header>
       ) : null}
 
+      {/* Honeypot — bots fill, humans don't see it. Read by useFormSubmit. */}
+      <input
+        ref={honeypotRef}
+        type="text"
+        name="company_website_url"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          width: "1px",
+          height: "1px",
+          opacity: 0,
+        }}
+      />
+
       <main className="flex flex-1 items-start justify-center">
         {!step ? (
           <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">
@@ -113,6 +172,7 @@ export function FormRunner({ form, embedded = false }: Props) {
                 setAnswer={setAnswer}
                 goPrev={goPrev}
                 goNext={goNext}
+                onBeforeAdvance={onBeforeAdvance}
                 history={history}
                 status={status}
               />
@@ -135,6 +195,7 @@ interface StepViewProps {
       ReturnType<typeof useFormStore.getState>["goNext"]
     >[0],
   ) => void;
+  onBeforeAdvance: () => Promise<boolean>;
   history: string[];
   status: string;
 }
@@ -146,6 +207,7 @@ function StepView({
   setAnswer,
   goPrev,
   goNext,
+  onBeforeAdvance,
   history,
   status,
 }: StepViewProps) {
@@ -162,13 +224,22 @@ function StepView({
   );
 
   const advance = useCallback(async () => {
+    if (status === "submitting") return;
     const handler = submitHandlerRef.current;
     if (handler) {
       const ok = await handler();
       if (!ok) return;
     }
+    const cleared = await onBeforeAdvance();
+    if (!cleared) {
+      // Submission errored — surface a generic message until the store
+      // exposes a per-field error from the server response.
+      const stateErr = useFormStore.getState().errorMessage;
+      if (stateErr) setError(stateErr);
+      return;
+    }
     goNext(defaultLinearNext);
-  }, [goNext]);
+  }, [goNext, onBeforeAdvance, status]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -202,6 +273,7 @@ function StepView({
   const isStatement = step.type === "statement";
   const isThankYou = step.type === "thank_you";
   const ctaLabel = step.cta ?? (isStatement ? "Continuar" : "OK");
+  const isSubmitting = status === "submitting";
 
   return (
     <StepShell
@@ -230,7 +302,8 @@ function StepView({
             <button
               type="button"
               onClick={() => goPrev()}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
               Voltar
@@ -240,9 +313,10 @@ function StepView({
           )}
           {step.type !== "single_choice" ? (
             <KeyboardHints
-              ctaLabel={ctaLabel}
+              ctaLabel={isSubmitting ? "Enviando…" : ctaLabel}
               onAdvance={() => void advance()}
-              ctaDisabled={status === "submitting"}
+              ctaDisabled={isSubmitting}
+              hideEnterHint={isSubmitting}
             />
           ) : null}
         </div>
