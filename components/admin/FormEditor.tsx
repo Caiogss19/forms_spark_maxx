@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowUp,
   Code2,
-  Copy,
   Plus,
   Trash2,
   X,
@@ -13,6 +12,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+import { EmbedButton } from "@/components/admin/EmbedButton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -33,7 +33,6 @@ export function FormEditor({ initialForm }: Props) {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [embedOpen, setEmbedOpen] = useState(false);
   const [jsonOpen, setJsonOpen] = useState(false);
 
   function patch(partial: Partial<FormDefinition>) {
@@ -139,13 +138,7 @@ export function FormEditor({ initialForm }: Props) {
             >
               <Code2 className="h-3.5 w-3.5" /> JSON
             </button>
-            <button
-              type="button"
-              onClick={() => setEmbedOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              <Code2 className="h-3.5 w-3.5" /> Embed
-            </button>
+            <EmbedButton slug={form.slug} />
             <button
               type="button"
               onClick={save}
@@ -376,9 +369,6 @@ export function FormEditor({ initialForm }: Props) {
         </section>
       </main>
 
-      {embedOpen ? (
-        <EmbedModal slug={form.slug} onClose={() => setEmbedOpen(false)} />
-      ) : null}
       {jsonOpen ? (
         <JsonModal
           value={JSON.stringify(form, null, 2)}
@@ -713,46 +703,6 @@ function IconBtn({
   );
 }
 
-function EmbedModal({
-  slug,
-  onClose,
-}: {
-  slug: string;
-  onClose: () => void;
-}) {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://forms.spark.com.br";
-
-  const snippet = `<div data-spark-form="${slug}" data-spark-min-height="640px"></div>
-<script async src="${origin}/embed.js"></script>`;
-
-  const iframe = `<iframe
-  src="${origin}/embed/${slug}"
-  style="width:100%;height:640px;border:0;display:block;"
-  loading="lazy"
-  title="Spark Forms"></iframe>`;
-
-  return (
-    <ModalShell onClose={onClose} title="Embedar no Framer">
-      <CopyBlock
-        title="Snippet (recomendado)"
-        hint="Auto-resize, encaminha UTMs/cookies da página pai, dispara spark:submission."
-        code={snippet}
-      />
-      <CopyBlock
-        title="iframe puro"
-        hint="Mais simples, mas altura fixa em 640px e sem forward de tracking."
-        code={iframe}
-      />
-      <p className="text-xs text-muted-foreground">
-        No Framer: <strong>Insert → Embed → Type: HTML</strong> e cole.
-      </p>
-    </ModalShell>
-  );
-}
-
 function JsonModal({
   value,
   onClose,
@@ -789,56 +739,6 @@ function JsonModal({
         </button>
       </div>
     </ModalShell>
-  );
-}
-
-function CopyBlock({
-  title,
-  code,
-  hint,
-}: {
-  title: string;
-  code: string;
-  hint?: string;
-}) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // fallback
-      const ta = document.createElement("textarea");
-      ta.value = code;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }
-  }
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </p>
-        <button
-          type="button"
-          onClick={copy}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-muted"
-        >
-          <Copy className="h-3 w-3" />
-          {copied ? "Copiado!" : "Copiar"}
-        </button>
-      </div>
-      <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-xs leading-relaxed">
-        <code>{code}</code>
-      </pre>
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
   );
 }
 

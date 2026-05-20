@@ -1,6 +1,7 @@
 import { ArrowUpRight, Pencil } from "lucide-react";
 import Link from "next/link";
 
+import { EmbedButton } from "@/components/admin/EmbedButton";
 import { getFormBySlug, getFormSlugs } from "@/lib/forms";
 
 export const dynamic = "force-dynamic";
@@ -75,6 +76,7 @@ export default async function AdminHome() {
                     <Pencil className="h-3.5 w-3.5" aria-hidden />
                     Editar
                   </Link>
+                  <EmbedButton slug={f.slug} />
                   <Link
                     href={`/f/${f.slug}`}
                     target="_blank"
