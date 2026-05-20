@@ -450,6 +450,32 @@
       return;
     }
 
+    if (
+      data.type === "spark-forms:redirect" &&
+      typeof data.url === "string" &&
+      /^https?:\/\//i.test(data.url)
+    ) {
+      // Redirect the actual host page, not just the iframe. Try top
+      // first (works when same-origin); fall back to our own location
+      // which embed.js may also be inside a srcdoc wrapper.
+      try {
+        if (window.top && window.top !== window) {
+          window.top.location.href = data.url;
+          return;
+        }
+      } catch (e) {
+        /* cross-origin; fall through */
+      }
+      try {
+        window.parent && window.parent !== window
+          ? (window.parent.location.href = data.url)
+          : (location.href = data.url);
+      } catch (e) {
+        location.href = data.url;
+      }
+      return;
+    }
+
     if (data.type === "spark-forms:disqualifier-show") {
       showDisqualifier(
         data.config || {},

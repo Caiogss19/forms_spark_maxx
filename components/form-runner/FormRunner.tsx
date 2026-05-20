@@ -83,6 +83,24 @@ export function FormRunner({ form, embedded = false }: Props) {
       }
       if (form.redirectOnSuccess) {
         setTimeout(() => {
+          if (embedded && typeof window !== "undefined") {
+            window.parent?.postMessage(
+              {
+                type: "spark-forms:redirect",
+                url: form.redirectOnSuccess,
+                slug: form.slug,
+              },
+              "*",
+            );
+            try {
+              if (window.top && window.top !== window) {
+                window.top.location.href = form.redirectOnSuccess!;
+                return;
+              }
+            } catch {
+              /* sandboxed: parent handles via postMessage */
+            }
+          }
           window.location.href = form.redirectOnSuccess!;
         }, 1500);
       }

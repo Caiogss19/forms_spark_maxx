@@ -71,6 +71,27 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       }
       if (form.redirectOnSuccess) {
         setTimeout(() => {
+          // When embedded, redirect the top window (host site), not just
+          // the iframe — otherwise the "thank-you" page loads inside the
+          // little 390x486 form area instead of taking over the page.
+          if (embedded && typeof window !== "undefined") {
+            window.parent?.postMessage(
+              {
+                type: "spark-forms:redirect",
+                url: form.redirectOnSuccess,
+                slug: form.slug,
+              },
+              "*",
+            );
+            try {
+              if (window.top && window.top !== window) {
+                window.top.location.href = form.redirectOnSuccess!;
+                return;
+              }
+            } catch {
+              /* sandboxed top-navigation: parent handles via postMessage */
+            }
+          }
           window.location.href = form.redirectOnSuccess!;
         }, 1500);
       }
