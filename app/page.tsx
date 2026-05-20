@@ -1,8 +1,10 @@
+import { LogIn } from "lucide-react";
 import Link from "next/link";
 
-import { getFormSlugs, getFormBySlug } from "@/lib/forms";
+import { isAdmin, isAdminEnabled } from "@/lib/admin-auth";
+import { getFormBySlug, getFormSlugs } from "@/lib/forms";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const slugs = await getFormSlugs();
@@ -17,19 +19,33 @@ export default async function Home() {
     }),
   );
 
+  const adminOn = isAdminEnabled();
+  const loggedIn = adminOn ? await isAdmin() : false;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center gap-10 px-6 py-20">
       <header className="space-y-3">
-        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-          Spark Forms
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Spark Forms
+          </p>
+          {adminOn ? (
+            <Link
+              href={loggedIn ? "/admin" : "/admin/login"}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <LogIn className="h-3 w-3" />
+              {loggedIn ? "Abrir painel" : "Entrar no painel"}
+            </Link>
+          ) : null}
+        </div>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           Formulários multi-step, white-label, embedáveis.
         </h1>
         <p className="text-base leading-relaxed text-muted-foreground">
           Substitui Typeform pra captura de leads no site da Spark. 100%
-          editável via JSON schema. Captura UTMs, valida e-mail corporativo,
-          envia pro n8n com retry.
+          editável via JSON ou via painel visual. Captura UTMs, valida e-mail
+          corporativo, envia pro n8n com retry.
         </p>
       </header>
 
@@ -39,7 +55,7 @@ export default async function Home() {
         </h2>
         {forms.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-            Nenhum JSON em <code>/forms</code> ainda.
+            Nenhum form ainda. {adminOn ? "Crie um pelo painel." : "Adicione um JSON em /forms."}
           </p>
         ) : (
           <ul className="divide-y divide-border rounded-2xl border border-border">
@@ -75,30 +91,25 @@ export default async function Home() {
         )}
       </section>
 
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-2 self-start rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
-      >
-        Editor →
-      </Link>
-
-      <section className="grid gap-3 rounded-2xl border border-border p-6 text-sm">
-        <h2 className="font-medium text-muted-foreground">Como adicionar um form</h2>
-        <ol className="list-decimal space-y-1 pl-5 text-foreground">
-          <li>
-            Crie <code className="rounded bg-muted px-1 py-0.5">forms/[slug].json</code>{" "}
-            seguindo o tipo <code>FormSchema</code>.
-          </li>
-          <li>
-            Rode <code className="rounded bg-muted px-1 py-0.5">pnpm validate:forms</code>{" "}
-            pra checar o schema.
-          </li>
-          <li>
-            Acesse <code className="rounded bg-muted px-1 py-0.5">/f/[slug]</code> ou
-            embeda <code className="rounded bg-muted px-1 py-0.5">/embed/[slug]</code>.
-          </li>
-        </ol>
-      </section>
+      {adminOn ? null : (
+        <section className="grid gap-3 rounded-2xl border border-border p-6 text-sm">
+          <h2 className="font-medium text-muted-foreground">Como adicionar um form</h2>
+          <ol className="list-decimal space-y-1 pl-5 text-foreground">
+            <li>
+              Crie <code className="rounded bg-muted px-1 py-0.5">forms/[slug].json</code>{" "}
+              seguindo o tipo <code>FormSchema</code>.
+            </li>
+            <li>
+              Rode <code className="rounded bg-muted px-1 py-0.5">pnpm validate:forms</code>{" "}
+              pra checar o schema.
+            </li>
+            <li>
+              Acesse <code className="rounded bg-muted px-1 py-0.5">/f/[slug]</code> ou
+              embeda <code className="rounded bg-muted px-1 py-0.5">/embed/[slug]</code>.
+            </li>
+          </ol>
+        </section>
+      )}
     </main>
   );
 }
