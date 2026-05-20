@@ -510,6 +510,46 @@ export function FormEditor({ initialForm }: Props) {
                 options={WEIGHT_OPTIONS}
               />
             </Field>
+            <Field label="Line-height do título (CSS)">
+              <Input
+                placeholder="default: 1.2"
+                value={form.theme?.titleLineHeight ?? ""}
+                onChange={(e) =>
+                  patchTheme({ titleLineHeight: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Line-height da descrição (CSS)">
+              <Input
+                placeholder="default: 1.6"
+                value={form.theme?.descriptionLineHeight ?? ""}
+                onChange={(e) =>
+                  patchTheme({
+                    descriptionLineHeight: e.target.value || undefined,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Line-height das labels (CSS)">
+              <Input
+                placeholder="default: 1.3"
+                value={form.theme?.labelLineHeight ?? ""}
+                onChange={(e) =>
+                  patchTheme({ labelLineHeight: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Letter-spacing do título (CSS)">
+              <Input
+                placeholder="ex.: -0.01em / 0 / 0.05em"
+                value={form.theme?.titleLetterSpacing ?? ""}
+                onChange={(e) =>
+                  patchTheme({
+                    titleLetterSpacing: e.target.value || undefined,
+                  })
+                }
+              />
+            </Field>
           </div>
         </section>
 
@@ -752,6 +792,22 @@ function Field({
   );
 }
 
+const DIMENSION_UNITS = ["px", "rem", "em", "%", "vh", "vw"] as const;
+type DimensionUnit = (typeof DIMENSION_UNITS)[number];
+
+function parseDimension(
+  v: string | undefined,
+): { number: string; unit: DimensionUnit } | null {
+  if (!v) return null;
+  const m = v.trim().match(/^(-?\d*\.?\d+)\s*([a-z%]+)?$/i);
+  if (!m) return null;
+  const rawUnit = (m[2] || "px").toLowerCase() as DimensionUnit;
+  const unit = (DIMENSION_UNITS as readonly string[]).includes(rawUnit)
+    ? rawUnit
+    : "px";
+  return { number: m[1], unit };
+}
+
 function SizeField({
   label,
   value,
@@ -763,14 +819,49 @@ function SizeField({
   onChange: (v: string | undefined) => void;
   placeholder: string;
 }) {
+  const parsedDefault = parseDimension(placeholder);
+  const parsed = parseDimension(value);
+  const num = parsed?.number ?? "";
+  const unit: DimensionUnit =
+    parsed?.unit ?? parsedDefault?.unit ?? "px";
+
+  function commit(nextNum: string, nextUnit: DimensionUnit) {
+    if (nextNum === "") {
+      onChange(undefined);
+      return;
+    }
+    if (!/^-?\d*\.?\d+$/.test(nextNum)) return;
+    onChange(`${nextNum}${nextUnit}`);
+  }
+
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <Input
-        value={value ?? ""}
-        placeholder={`default: ${placeholder}`}
-        onChange={(e) => onChange(e.target.value || undefined)}
-      />
+      <div className="flex gap-2">
+        <Input
+          type="number"
+          step="any"
+          value={num}
+          placeholder={parsedDefault?.number ?? ""}
+          onChange={(e) => commit(e.target.value, unit)}
+          className="flex-1"
+        />
+        <select
+          value={unit}
+          onChange={(e) => commit(num || "0", e.target.value as DimensionUnit)}
+          style={{ height: "var(--form-input-height, 3rem)" }}
+          className="rounded-lg border border-border bg-transparent px-2 text-xs"
+        >
+          {DIMENSION_UNITS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+      </div>
+      <span className="block text-[10px] text-muted-foreground">
+        Default: <code>{placeholder}</code>
+      </span>
     </label>
   );
 }

@@ -142,6 +142,11 @@ export const ThemeSchema = z.object({
   titleWeight: z.string().optional(),
   labelWeight: z.string().optional(),
   ctaWeight: z.string().optional(),
+  // Line height & letter spacing — accept any CSS value.
+  titleLineHeight: z.string().optional(),
+  descriptionLineHeight: z.string().optional(),
+  labelLineHeight: z.string().optional(),
+  titleLetterSpacing: z.string().optional(),
   // CTA color overrides (independent of "primary").
   ctaBackground: z.string().optional(),
   ctaForeground: z.string().optional(),

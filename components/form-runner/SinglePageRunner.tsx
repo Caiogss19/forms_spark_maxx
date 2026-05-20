@@ -299,24 +299,26 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
             style={{ marginBottom: sizes.formPadding }}
           >
             <h1
-              className="tracking-tight"
               style={{
                 fontSize: sizes.titleSize,
-                lineHeight: "1.2",
+                lineHeight: form.theme?.titleLineHeight ?? "1.2",
+                letterSpacing: form.theme?.titleLetterSpacing,
                 color: form.theme?.titleColor,
                 fontWeight: form.theme?.titleWeight ?? "600",
+                margin: 0,
               }}
             >
               {interpolate(form.title, answers)}
             </h1>
             {form.description ? (
               <p
-                className="leading-relaxed"
                 style={{
                   fontSize: sizes.descriptionSize,
+                  lineHeight: form.theme?.descriptionLineHeight ?? "1.6",
                   color:
                     form.theme?.descriptionColor ??
                     "var(--form-muted-foreground,var(--muted-foreground))",
+                  margin: 0,
                 }}
               >
                 {interpolate(form.description, answers)}
@@ -348,6 +350,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
                 labelTextSize={sizes.inputTextSize}
                 labelColor={form.theme?.labelColor}
                 labelWeight={form.theme?.labelWeight}
+                labelLineHeight={form.theme?.labelLineHeight}
                 errorColor={form.theme?.errorColor}
               />
             ))}
@@ -455,6 +458,7 @@ interface FieldRowProps {
   labelTextSize?: string;
   labelColor?: string;
   labelWeight?: string;
+  labelLineHeight?: string;
   errorColor?: string;
 }
 
@@ -472,6 +476,7 @@ function FieldRow({
   labelTextSize,
   labelColor,
   labelWeight,
+  labelLineHeight,
   errorColor,
 }: FieldRowProps) {
   if (step.type === "statement") {
@@ -505,9 +510,10 @@ function FieldRow({
         <div>
           <label
             htmlFor={`f-${step.id}`}
-            className="block leading-tight"
+            className="block"
             style={{
               fontSize: labelTextSize,
+              lineHeight: labelLineHeight ?? "1.3",
               color: labelColor,
               fontWeight: labelWeight ?? "500",
             }}

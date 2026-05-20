@@ -119,22 +119,24 @@ export function FormPreview({ form }: Props) {
             style={{ marginBottom: sizes.formPadding }}
           >
             <h1
-              className="tracking-tight"
               style={{
                 fontSize: sizes.titleSize,
-                lineHeight: "1.2",
+                lineHeight: form.theme?.titleLineHeight ?? "1.2",
+                letterSpacing: form.theme?.titleLetterSpacing,
                 color: form.theme?.titleColor,
                 fontWeight: form.theme?.titleWeight ?? "600",
+                margin: 0,
               }}
             >
               {interpolate(form.title || "Título do formulário", answers)}
             </h1>
             {form.description ? (
               <p
-                className="leading-relaxed"
                 style={{
                   fontSize: sizes.descriptionSize,
+                  lineHeight: form.theme?.descriptionLineHeight ?? "1.6",
                   color: form.theme?.descriptionColor ?? "var(--prev-muted)",
+                  margin: 0,
                 }}
               >
                 {interpolate(form.description, answers)}
@@ -164,6 +166,7 @@ export function FormPreview({ form }: Props) {
                 labelTextSize={sizes.inputTextSize}
                 labelColor={form.theme?.labelColor}
                 labelWeight={form.theme?.labelWeight ?? "500"}
+                labelLineHeight={form.theme?.labelLineHeight ?? "1.3"}
                 errorColor={form.theme?.errorColor ?? "#ef4444"}
               />
             ))}
@@ -218,6 +221,7 @@ interface FieldMockProps {
   labelTextSize: string;
   labelColor?: string;
   labelWeight: string;
+  labelLineHeight: string;
   errorColor: string;
 }
 
@@ -229,6 +233,7 @@ function FieldMock({
   labelTextSize,
   labelColor,
   labelWeight,
+  labelLineHeight,
   errorColor,
 }: FieldMockProps) {
   const value = answers[step.mapTo ?? step.id];
@@ -282,9 +287,10 @@ function FieldMock({
     <div>
       {showLabels ? (
         <label
-          className="mb-1 block leading-tight"
+          className="mb-1 block"
           style={{
             fontSize: labelTextSize,
+            lineHeight: labelLineHeight,
             color: labelColor,
             fontWeight: labelWeight,
           }}
