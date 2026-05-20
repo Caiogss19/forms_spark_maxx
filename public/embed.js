@@ -91,6 +91,13 @@
       }
     }
 
+    // Parent URL + referrer so the iframe captures the host page (not the
+    // iframe's own /embed/<slug>) on first paint. Avoids the postMessage
+    // race that previously left landing_page pointing at the iframe URL.
+    src +=
+      (hasQuery ? "&" : "?") + "_p=" + encodeURIComponent(location.href);
+    src += "&_pr=" + encodeURIComponent(document.referrer || "");
+
     var iframe = document.createElement("iframe");
     iframe.src = src;
     iframe.title = host.getAttribute("data-spark-title") || "Spark Forms";

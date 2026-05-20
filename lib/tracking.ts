@@ -104,6 +104,19 @@ export function captureTracking(): TrackingData {
     if (v) fromQuery[key] = v;
   }
 
+  // When embedded via embed.js, the host script appends the parent's URL
+  // and referrer so we report the actual landing page, not the iframe.
+  const parentUrl = params.get("_p");
+  const parentReferrer = params.get("_pr");
+  const ownUrl = (() => {
+    // Strip the embed-only params from our own URL so a fallback to
+    // window.location doesn't leak them into the payload.
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete("_p");
+    clean.searchParams.delete("_pr");
+    return clean.toString();
+  })();
+
   // First-touch persistence (cross-session, cross-tab via localStorage)
   let firstTouchAt = safeGetLocal(STORAGE_KEYS.firstTouchAt);
   if (!firstTouchAt) {
@@ -128,9 +141,9 @@ export function captureTracking(): TrackingData {
 
   const snapshot: TrackingData = {
     ...fromQuery,
-    referrer: document.referrer || undefined,
-    landing_page: window.location.href,
-    page_url: window.location.href,
+    referrer: parentReferrer || document.referrer || undefined,
+    landing_page: parentUrl || ownUrl,
+    page_url: parentUrl || ownUrl,
     user_agent: ua,
     device: detectDevice(ua),
     language: navigator.language,
