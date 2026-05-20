@@ -154,6 +154,7 @@ export const FormSchema = z.object({
   tags: z.array(z.string()).default([]),
   redirectOnSuccess: z.url().optional(),
   successMessage: z.string().optional(),
+  lgpdNotice: z.string().optional(),
   hiddenFields: z.array(HiddenFieldSchema).default([]),
   steps: z.array(StepSchema).min(1),
 });

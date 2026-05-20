@@ -94,15 +94,24 @@ export function FormRunner({ form, embedded = false }: Props) {
     () => findActiveDisqualifier(form, answers),
     [form, answers],
   );
-  // Acknowledged-key pattern: storing the key (instead of a boolean reset
-  // via effect) means switching to a different disqualifying option
-  // naturally re-opens the modal.
-  const disqualifierKey = disqualifier
-    ? `${disqualifier.stepId}:${disqualifier.optionValue}`
-    : null;
-  const [acknowledgedKey, setAcknowledgedKey] = useState<string | null>(null);
-  const showDisqualifier =
-    disqualifier !== null && disqualifierKey !== acknowledgedKey;
+
+  // Clearing the disqualifying answer on dismiss lets the user pick a
+  // different option immediately — they don't have to manually unselect.
+  const dismissDisqualifier = useCallback(() => {
+    if (!disqualifier) return;
+    const step = form.steps.find((s) => s.id === disqualifier.stepId);
+    if (!step) return;
+    const key = step.mapTo ?? step.id;
+    const current = answers[key];
+    if (Array.isArray(current)) {
+      const next = (current as string[]).filter(
+        (v) => v !== disqualifier.optionValue,
+      );
+      setAnswer(key, next.length > 0 ? next : null);
+    } else {
+      setAnswer(key, null);
+    }
+  }, [disqualifier, form.steps, answers, setAnswer]);
 
   /**
    * Intercepts advance BEFORE the linear next-step jump. Returns false to
@@ -221,10 +230,18 @@ export function FormRunner({ form, embedded = false }: Props) {
         )}
       </main>
 
-      {showDisqualifier && disqualifier ? (
+      {form.lgpdNotice && step?.type !== "thank_you" ? (
+        <footer className="mx-auto w-full max-w-2xl px-6 pb-6">
+          <p className="whitespace-pre-line text-[11px] leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]">
+            {form.lgpdNotice}
+          </p>
+        </footer>
+      ) : null}
+
+      {disqualifier ? (
         <DisqualifierModal
           config={disqualifier.config}
-          onClose={() => setAcknowledgedKey(disqualifierKey)}
+          onClose={dismissDisqualifier}
         />
       ) : null}
     </div>

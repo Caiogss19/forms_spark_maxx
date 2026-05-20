@@ -93,6 +93,11 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         o.mutedForeground ?? "var(--muted-foreground)",
       "--form-muted-foreground":
         o.mutedForeground ?? "var(--muted-foreground)",
+      // Compact-form spec: 390px width, 486px ideal height, 20px padding,
+      // 22px title, 40px label height, 14px label text, 10px between
+      // fields, 30px before CTA.
+      "--form-input-height": "40px",
+      "--form-input-text-size": "14px",
     } as React.CSSProperties;
   }, [form.theme]);
 
@@ -129,12 +134,26 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
     () => findActiveDisqualifier(form, answers),
     [form, answers],
   );
-  const disqualifierKey = disqualifier
-    ? `${disqualifier.stepId}:${disqualifier.optionValue}`
-    : null;
-  const [acknowledgedKey, setAcknowledgedKey] = useState<string | null>(null);
-  const showDisqualifier =
-    disqualifier !== null && disqualifierKey !== acknowledgedKey;
+
+  // Clearing the disqualifying answer on dismiss (instead of just
+  // acknowledging) lets the user immediately pick a different option.
+  const dismissDisqualifier = useCallback(() => {
+    if (!disqualifier) return;
+    const step = form.steps.find((s) => s.id === disqualifier.stepId);
+    if (!step) return;
+    const key = step.mapTo ?? step.id;
+    const current = answers[key];
+    // For multi_choice we strip only the offending value; for single
+    // selects we clear the whole answer.
+    if (Array.isArray(current)) {
+      const next = (current as string[]).filter(
+        (v) => v !== disqualifier.optionValue,
+      );
+      setAnswer(key, next.length > 0 ? next : null);
+    } else {
+      setAnswer(key, null);
+    }
+  }, [disqualifier, form.steps, answers, setAnswer]);
 
   const onSubmit = useCallback(async () => {
     if (status === "submitting") return;
@@ -218,26 +237,35 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         }}
       />
 
-      <main className="mx-auto w-full max-w-xl flex-1 px-6 py-10 md:py-12">
+      <main
+        className="mx-auto w-full flex-1"
+        style={{
+          maxWidth: "390px",
+          minHeight: "486px",
+          padding: "20px",
+        }}
+      >
         <div
           style={{
             background: "var(--form-card-bg)",
             borderRadius: "var(--form-card-radius)",
           }}
-          className="px-2 py-2 md:px-8 md:py-10"
         >
           <header
-            className={
-              titleAlign === "center"
-                ? "mb-6 space-y-2 text-center"
-                : "mb-6 space-y-2"
-            }
+            className={titleAlign === "center" ? "space-y-2 text-center" : "space-y-2"}
+            style={{ marginBottom: "20px" }}
           >
-            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+            <h1
+              className="font-semibold tracking-tight"
+              style={{ fontSize: "22px", lineHeight: "1.2" }}
+            >
               {interpolate(form.title, answers)}
             </h1>
             {form.description ? (
-              <p className="text-sm leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]">
+              <p
+                className="leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]"
+                style={{ fontSize: "13px" }}
+              >
                 {interpolate(form.description, answers)}
               </p>
             ) : null}
@@ -248,8 +276,8 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               e.preventDefault();
               void onSubmit();
             }}
-            className="space-y-4"
             noValidate
+            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
           >
             {inputSteps.map((step, index) => (
               <FieldRow
@@ -271,7 +299,8 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               <p
                 role="alert"
                 data-spark-error
-                className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive"
+                style={{ fontSize: "14px" }}
               >
                 {errorMessage}
               </p>
@@ -282,22 +311,34 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               disabled={status === "submitting" || Boolean(disqualifier)}
               style={{
                 borderRadius: "var(--form-input-radius, 0.5rem)",
+                marginTop: "30px",
+                height: "40px",
+                fontSize: "14px",
               }}
-              className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 bg-[var(--form-primary,var(--primary))] px-6 text-sm font-medium text-[var(--form-primary-foreground,var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 bg-[var(--form-primary,var(--primary))] px-6 font-medium text-[var(--form-primary-foreground,var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === "submitting"
                 ? "Enviando…"
                 : (form.steps.find((s) => s.type === "thank_you")?.cta ??
                   "Enviar")}
             </button>
+
+            {form.lgpdNotice ? (
+              <p
+                className="whitespace-pre-line text-[var(--form-muted-foreground,var(--muted-foreground))]"
+                style={{ fontSize: "11px", lineHeight: "1.5", marginTop: "12px" }}
+              >
+                {form.lgpdNotice}
+              </p>
+            ) : null}
           </form>
         </div>
       </main>
 
-      {showDisqualifier && disqualifier ? (
+      {disqualifier ? (
         <DisqualifierModal
           config={disqualifier.config}
-          onClose={() => setAcknowledgedKey(disqualifierKey)}
+          onClose={dismissDisqualifier}
         />
       ) : null}
     </div>

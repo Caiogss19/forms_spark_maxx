@@ -261,6 +261,16 @@ export function FormEditor({ initialForm }: Props) {
                 }
               />
             </Field>
+            <Field label="Aviso de LGPD / uso de dados (opcional)" full>
+              <Textarea
+                rows={3}
+                placeholder="Ex.: Ao enviar, você concorda com nossa Política de Privacidade. Os dados serão usados apenas para contato comercial."
+                value={form.lgpdNotice ?? ""}
+                onChange={(e) =>
+                  patch({ lgpdNotice: e.target.value || undefined })
+                }
+              />
+            </Field>
           </div>
         </section>
 

@@ -9,12 +9,13 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       ref={ref}
       rows={rows}
       style={{
+        fontSize: "var(--form-input-text-size, 1rem)",
         borderRadius: "var(--form-input-radius, 0.5rem)",
         background: "var(--form-input-bg, transparent)",
         ...style,
       }}
       className={cn(
-        "flex min-h-[96px] w-full border px-4 py-3 text-base outline-none transition-colors",
+        "flex min-h-[96px] w-full border px-4 py-3 outline-none transition-colors",
         "border-[var(--form-input-border,var(--border))]",
         "placeholder:text-[var(--form-input-placeholder,var(--muted-foreground))]",
         "focus:border-[var(--form-input-focus-border,var(--foreground))]",
