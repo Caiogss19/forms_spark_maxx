@@ -1,7 +1,6 @@
-import { LogIn } from "lucide-react";
+import { Pencil } from "lucide-react";
 import Link from "next/link";
 
-import { isAdmin, isAdminEnabled } from "@/lib/admin-auth";
 import { getFormBySlug, getFormSlugs } from "@/lib/forms";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +18,6 @@ export default async function Home() {
     }),
   );
 
-  const adminOn = isAdminEnabled();
-  const loggedIn = adminOn ? await isAdmin() : false;
-
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center gap-10 px-6 py-20">
       <header className="space-y-3">
@@ -29,15 +25,13 @@ export default async function Home() {
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
             Spark Forms
           </p>
-          {adminOn ? (
-            <Link
-              href={loggedIn ? "/admin" : "/admin/login"}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              <LogIn className="h-3 w-3" />
-              {loggedIn ? "Abrir painel" : "Entrar no painel"}
-            </Link>
-          ) : null}
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <Pencil className="h-3 w-3" />
+            Abrir painel
+          </Link>
         </div>
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           Formulários multi-step, white-label, embedáveis.
@@ -55,7 +49,7 @@ export default async function Home() {
         </h2>
         {forms.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-            Nenhum form ainda. {adminOn ? "Crie um pelo painel." : "Adicione um JSON em /forms."}
+            Nenhum form ainda. Crie um pelo painel.
           </p>
         ) : (
           <ul className="divide-y divide-border rounded-2xl border border-border">
@@ -90,26 +84,6 @@ export default async function Home() {
           </ul>
         )}
       </section>
-
-      {adminOn ? null : (
-        <section className="grid gap-3 rounded-2xl border border-border p-6 text-sm">
-          <h2 className="font-medium text-muted-foreground">Como adicionar um form</h2>
-          <ol className="list-decimal space-y-1 pl-5 text-foreground">
-            <li>
-              Crie <code className="rounded bg-muted px-1 py-0.5">forms/[slug].json</code>{" "}
-              seguindo o tipo <code>FormSchema</code>.
-            </li>
-            <li>
-              Rode <code className="rounded bg-muted px-1 py-0.5">pnpm validate:forms</code>{" "}
-              pra checar o schema.
-            </li>
-            <li>
-              Acesse <code className="rounded bg-muted px-1 py-0.5">/f/[slug]</code> ou
-              embeda <code className="rounded bg-muted px-1 py-0.5">/embed/[slug]</code>.
-            </li>
-          </ol>
-        </section>
-      )}
     </main>
   );
 }
