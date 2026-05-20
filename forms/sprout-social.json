@@ -1,0 +1,107 @@
+{
+  "slug": "sprout-social",
+  "title": "Preencha o formulário",
+  "language": "pt-BR",
+  "layout": "single_page",
+  "conversionIdentifier": "One Page - Forms - Sprout",
+  "product": "sprout",
+  "tags": ["forms", "sprout", "lead"],
+  "successMessage": "Recebido! A gente entra em contato em até 24 horas úteis.",
+  "theme": {
+    "mode": "dark",
+    "background": "#000000",
+    "foreground": "#FFFFFF",
+    "primary": "#F5F5F5",
+    "primaryForeground": "#0A0A0A",
+    "cardBackground": "rgba(20,20,20,0.6)",
+    "cardBorderRadius": "1.5rem",
+    "inputBackground": "#1A1A1A",
+    "inputBorder": "transparent",
+    "inputRadius": "9999px",
+    "mutedForeground": "#9CA3AF",
+    "showLabels": false,
+    "titleAlign": "center",
+    "showFormChrome": false
+  },
+  "steps": [
+    {
+      "id": "name",
+      "type": "short_text",
+      "title": "Nome",
+      "placeholder": "Nome",
+      "required": true,
+      "validation": { "min": 2, "max": 80 },
+      "mapTo": "name"
+    },
+    {
+      "id": "email",
+      "type": "email",
+      "title": "E-mail corporativo",
+      "placeholder": "E-mail corporativo",
+      "required": true,
+      "validation": { "corporateOnly": true },
+      "messages": {
+        "blockedDomain": "Use seu e-mail corporativo pra agilizarmos seu atendimento."
+      },
+      "mapTo": "email"
+    },
+    {
+      "id": "phone",
+      "type": "phone",
+      "title": "Telefone",
+      "placeholder": "Telefone",
+      "required": true,
+      "mapTo": "mobile_phone"
+    },
+    {
+      "id": "profile",
+      "type": "dropdown",
+      "title": "Qual é o seu perfil?",
+      "placeholder": "Qual é o seu perfil?",
+      "required": true,
+      "mapTo": "cf_voce_e_0",
+      "options": [
+        { "value": "empresa_ou_marca", "label": "Empresa ou marca" },
+        { "value": "agencia", "label": "Agência" },
+        { "value": "consultor", "label": "Consultor(a) independente" },
+        { "value": "outro", "label": "Outro" }
+      ]
+    },
+    {
+      "id": "company_name",
+      "type": "short_text",
+      "title": "Empresa",
+      "placeholder": "Empresa",
+      "required": true,
+      "mapTo": "company_name"
+    },
+    {
+      "id": "looking_for",
+      "type": "dropdown",
+      "title": "O que você está buscando",
+      "placeholder": "O que você está buscando",
+      "required": true,
+      "mapTo": "prioridade_estrategica",
+      "options": [
+        { "value": "encontrar_influenciadores", "label": "Encontrar influenciadores" },
+        { "value": "gerenciar_campanhas", "label": "Gerenciar campanhas" },
+        { "value": "mensurar_roi", "label": "Mensurar ROI" },
+        { "value": "tudo_isso", "label": "Tudo isso" }
+      ]
+    },
+    {
+      "id": "runs_campaigns",
+      "type": "dropdown",
+      "title": "Você faz campanha de influência?",
+      "placeholder": "Você faz campanha de influência?",
+      "required": true,
+      "mapTo": "cf_voce_ja_faz_campanhas_de_marketing_de_influencia",
+      "options": [
+        { "value": "sim_recorrente", "label": "Sim, de forma recorrente" },
+        { "value": "sim_pontual", "label": "Sim, pontualmente" },
+        { "value": "nao_quero_comecar", "label": "Não, mas quero começar" },
+        { "value": "nao_nao_tenho_interesse", "label": "Não tenho interesse" }
+      ]
+    }
+  ]
+}

@@ -46,9 +46,16 @@ export function Dropdown({
             advance();
           }
         }}
+        style={{
+          borderRadius: "var(--form-input-radius, 0.5rem)",
+          background: "var(--form-input-bg, transparent)",
+          color: current ? undefined : "var(--form-input-placeholder, var(--muted-foreground))",
+        }}
         className={cn(
-          "flex h-12 w-full appearance-none rounded-lg border border-border bg-transparent px-4 pr-10 text-base outline-none transition-colors",
-          "focus:border-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "flex h-12 w-full appearance-none border px-4 pr-10 text-base outline-none transition-colors",
+          "border-[var(--form-input-border,var(--border))]",
+          "focus:border-[var(--form-input-focus-border,var(--foreground))]",
+          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         )}
       >
         <option value="" disabled>

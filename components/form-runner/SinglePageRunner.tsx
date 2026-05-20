@@ -75,13 +75,28 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
 
   const themeVars = useMemo(() => {
     const t = resolveTheme(form.theme);
+    const o = form.theme ?? {};
     return {
       "--form-primary": t.primary,
-      "--form-primary-foreground": "#FFFFFF",
+      "--form-primary-foreground": o.primaryForeground ?? "#FFFFFF",
       "--form-background": t.background,
       "--form-foreground": t.foreground,
+      "--form-card-bg": o.cardBackground ?? "transparent",
+      "--form-card-radius": o.cardBorderRadius ?? "1rem",
+      "--form-input-bg": o.inputBackground ?? "transparent",
+      "--form-input-border": o.inputBorder ?? "var(--border)",
+      "--form-input-focus-border": o.inputBorder ?? "var(--foreground)",
+      "--form-input-radius": o.inputRadius ?? "0.5rem",
+      "--form-input-placeholder":
+        o.mutedForeground ?? "var(--muted-foreground)",
+      "--form-muted-foreground":
+        o.mutedForeground ?? "var(--muted-foreground)",
     } as React.CSSProperties;
   }, [form.theme]);
+
+  const showLabels = form.theme?.showLabels !== false;
+  const titleAlign = form.theme?.titleAlign ?? "left";
+  const showHeader = form.theme?.showFormChrome !== false;
 
   const registerSubmit = useCallback(
     (stepId: string) =>
@@ -133,15 +148,13 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
     (s) => s.type !== "thank_you",
   );
 
-  const t = resolveTheme(form.theme);
-
   if (successId) {
     return (
       <div
         style={themeVars}
         className="flex min-h-screen flex-col bg-[var(--form-background,var(--background))] text-[var(--form-foreground,var(--foreground))]"
       >
-        {!embedded ? <FormHeader form={form} /> : null}
+        {!embedded && showHeader ? <FormHeader form={form} /> : null}
         <main className="flex flex-1 items-center justify-center px-6 py-12">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -172,7 +185,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       style={themeVars}
       className="flex min-h-screen flex-col bg-[var(--form-background,var(--background))] text-[var(--form-foreground,var(--foreground))]"
     >
-      {!embedded ? <FormHeader form={form} /> : null}
+      {!embedded && showHeader ? <FormHeader form={form} /> : null}
 
       {/* Honeypot field — same anti-spam pattern as the stepped runner. */}
       <input
@@ -191,68 +204,80 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         }}
       />
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10 md:py-16">
-        <header className="mb-8 space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            {interpolate(form.title, answers)}
-          </h1>
-          {form.description ? (
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {interpolate(form.description, answers)}
-            </p>
-          ) : null}
-        </header>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void onSubmit();
+      <main className="mx-auto w-full max-w-xl flex-1 px-6 py-10 md:py-12">
+        <div
+          style={{
+            background: "var(--form-card-bg)",
+            borderRadius: "var(--form-card-radius)",
           }}
-          className="space-y-6"
-          noValidate
+          className="px-2 py-2 md:px-8 md:py-10"
         >
-          {inputSteps.map((step, index) => (
-            <FieldRow
-              key={step.id}
-              step={step}
-              index={index}
-              answers={answers}
-              setAnswer={setAnswer}
-              advance={advance}
-              registerSubmit={registerSubmit(step.id)}
-              setError={setErrorFor(step.id)}
-              error={errors[step.id] ?? null}
-              redirectUrl={form.redirectOnSuccess}
-            />
-          ))}
+          <header
+            className={
+              titleAlign === "center"
+                ? "mb-6 space-y-2 text-center"
+                : "mb-6 space-y-2"
+            }
+          >
+            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+              {interpolate(form.title, answers)}
+            </h1>
+            {form.description ? (
+              <p className="text-sm leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]">
+                {interpolate(form.description, answers)}
+              </p>
+            ) : null}
+          </header>
 
-          {errorMessage ? (
-            <p
-              role="alert"
-              data-spark-error
-              className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
-            >
-              {errorMessage}
-            </p>
-          ) : null}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void onSubmit();
+            }}
+            className="space-y-4"
+            noValidate
+          >
+            {inputSteps.map((step, index) => (
+              <FieldRow
+                key={step.id}
+                step={step}
+                index={index}
+                answers={answers}
+                setAnswer={setAnswer}
+                advance={advance}
+                registerSubmit={registerSubmit(step.id)}
+                setError={setErrorFor(step.id)}
+                error={errors[step.id] ?? null}
+                redirectUrl={form.redirectOnSuccess}
+                showLabels={showLabels}
+              />
+            ))}
 
-          <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              {t.fontFamily ? null : null}
-              Seus dados são tratados conforme a LGPD.
-            </p>
+            {errorMessage ? (
+              <p
+                role="alert"
+                data-spark-error
+                className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+              >
+                {errorMessage}
+              </p>
+            ) : null}
+
             <button
               type="submit"
               disabled={status === "submitting"}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[var(--form-primary,var(--primary))] px-6 text-sm font-medium text-[var(--form-primary-foreground,var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{
+                borderRadius: "var(--form-input-radius, 0.5rem)",
+              }}
+              className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 bg-[var(--form-primary,var(--primary))] px-6 text-sm font-medium text-[var(--form-primary-foreground,var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === "submitting"
                 ? "Enviando…"
                 : (form.steps.find((s) => s.type === "thank_you")?.cta ??
                   "Enviar")}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </main>
     </div>
   );
@@ -292,6 +317,7 @@ interface FieldRowProps {
   setError: (msg: string | null) => void;
   error: string | null;
   redirectUrl?: string;
+  showLabels?: boolean;
 }
 
 function FieldRow({
@@ -304,10 +330,11 @@ function FieldRow({
   setError,
   error,
   redirectUrl,
+  showLabels = true,
 }: FieldRowProps) {
   if (step.type === "statement") {
     return (
-      <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+      <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]">
         <p className="font-medium text-foreground">
           {interpolate(step.title, answers)}
         </p>
@@ -320,29 +347,41 @@ function FieldRow({
 
   const value = answers[step.mapTo ?? step.id];
 
+  // When labels are hidden, the step's title becomes the placeholder so
+  // the field still self-describes (matches the Sprout Social aesthetic).
+  const effectiveStep = showLabels
+    ? step
+    : {
+        ...step,
+        placeholder:
+          step.placeholder ?? interpolate(step.title, answers),
+      };
+
   return (
-    <div className="space-y-2" data-spark-error={error ? "true" : undefined}>
-      <div>
-        <label
-          htmlFor={`f-${step.id}`}
-          className="block text-sm font-medium leading-tight"
-        >
-          {interpolate(step.title, answers)}
-          {step.required ? (
-            <span className="ml-1 text-destructive" aria-hidden>
-              *
-            </span>
+    <div className="space-y-1.5" data-spark-error={error ? "true" : undefined}>
+      {showLabels ? (
+        <div>
+          <label
+            htmlFor={`f-${step.id}`}
+            className="block text-sm font-medium leading-tight"
+          >
+            {interpolate(step.title, answers)}
+            {step.required ? (
+              <span className="ml-1 text-destructive" aria-hidden>
+                *
+              </span>
+            ) : null}
+          </label>
+          {step.subtitle ? (
+            <p className="mt-1 text-xs text-[var(--form-muted-foreground,var(--muted-foreground))]">
+              {interpolate(step.subtitle, answers)}
+            </p>
           ) : null}
-        </label>
-        {step.subtitle ? (
-          <p className="mt-1 text-xs text-muted-foreground">
-            {interpolate(step.subtitle, answers)}
-          </p>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <StepRenderer
-        step={step}
+        step={effectiveStep}
         value={value}
         setValue={(v) => setAnswer(step.mapTo ?? step.id, v)}
         advance={advance}
@@ -356,15 +395,16 @@ function FieldRow({
         <p
           role="alert"
           data-spark-error="true"
-          className="text-sm font-medium text-destructive"
+          className="text-xs font-medium text-destructive"
         >
           {error}
         </p>
-      ) : step.helperText ? (
-        <p className="text-xs text-muted-foreground">{step.helperText}</p>
+      ) : showLabels && step.helperText ? (
+        <p className="text-xs text-[var(--form-muted-foreground,var(--muted-foreground))]">
+          {step.helperText}
+        </p>
       ) : null}
 
-      {/* Padding marker for scrollIntoView on validation failure */}
       <span className="sr-only" id={`f-${step.id}-end`}>
         step {index + 1}
       </span>

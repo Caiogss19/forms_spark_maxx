@@ -84,11 +84,21 @@ export type Step = z.infer<typeof StepSchema>;
 
 export const ThemeSchema = z.object({
   primary: z.string().optional(),
+  primaryForeground: z.string().optional(),
   background: z.string().optional(),
   foreground: z.string().optional(),
+  cardBackground: z.string().optional(),
+  cardBorderRadius: z.string().optional(),
+  inputBackground: z.string().optional(),
+  inputBorder: z.string().optional(),
+  inputRadius: z.string().optional(),
+  mutedForeground: z.string().optional(),
   fontFamily: z.string().optional(),
   logoUrl: z.url().optional(),
   mode: z.enum(["light", "dark", "auto"]).optional(),
+  showLabels: z.boolean().optional(),
+  titleAlign: z.enum(["left", "center"]).optional(),
+  showFormChrome: z.boolean().optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 
