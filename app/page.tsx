@@ -75,6 +75,13 @@ export default async function Home() {
         )}
       </section>
 
+      <Link
+        href="/admin"
+        className="inline-flex items-center gap-2 self-start rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+      >
+        Editor →
+      </Link>
+
       <section className="grid gap-3 rounded-2xl border border-border p-6 text-sm">
         <h2 className="font-medium text-muted-foreground">Como adicionar um form</h2>
         <ol className="list-decimal space-y-1 pl-5 text-foreground">
