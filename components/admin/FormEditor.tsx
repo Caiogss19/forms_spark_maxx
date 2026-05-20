@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { EmbedButton } from "@/components/admin/EmbedButton";
+import { FormPreview } from "@/components/admin/FormPreview";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -126,7 +127,7 @@ export function FormEditor({ initialForm }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-6 py-3">
           <Link
             href="/admin"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -165,7 +166,8 @@ export function FormEditor({ initialForm }: Props) {
         ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-4xl space-y-6 px-6 py-8">
+      <main className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="space-y-6">
         {/* Metadata */}
         <section className="rounded-2xl border border-border p-5">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -685,6 +687,25 @@ export function FormEditor({ initialForm }: Props) {
             ))}
           </ul>
         </section>
+        </div>
+
+        {/* Live preview — sticky on lg+, stacks below on mobile */}
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Preview ao vivo
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              layout {form.layout ?? "stepped"}
+            </span>
+          </div>
+          <FormPreview form={form} />
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Preview reflete o layout <code>single_page</code> com as cores e
+            dimensões atuais. Mudanças aparecem instantaneamente — salvar pra
+            publicar.
+          </p>
+        </aside>
       </main>
 
       {jsonOpen ? (
@@ -763,23 +784,34 @@ function ColorField({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const valid = /^#([0-9a-f]{3,8})$/i.test(value);
+  const hexValid = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(value);
+  // <input type=color> only accepts 6-digit hex. If user typed rgba()
+  // we still show the text input but disable the swatch picker.
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className="flex gap-2">
         <Input
           value={value}
-          placeholder="#000000 ou rgba(…)"
+          placeholder="#000000, rgba(…), transparent"
           onChange={(e) => onChange(e.target.value)}
         />
-        {valid ? (
-          <span
-            className="h-12 w-12 shrink-0 rounded-lg border border-border"
-            style={{ background: value }}
-            aria-hidden
+        <label
+          className="relative inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-border"
+          style={{ background: hexValid ? value : "transparent" }}
+          title={hexValid ? "Mudar cor" : "Cole um valor #RRGGBB pra usar o picker"}
+        >
+          {!hexValid ? (
+            <span className="text-[10px] text-muted-foreground">cole hex</span>
+          ) : null}
+          <input
+            type="color"
+            value={hexValid ? value.slice(0, 7) : "#000000"}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            aria-label={`Selecionar ${label}`}
           />
-        ) : null}
+        </label>
       </div>
     </label>
   );
