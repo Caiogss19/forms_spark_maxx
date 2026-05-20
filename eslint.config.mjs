@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Hand-authored vanilla JS shipped to host pages — not under our
+    // TS rules.
+    "public/**",
   ]),
 ]);
 

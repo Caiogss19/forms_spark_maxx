@@ -4,18 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { resolveNextStep } from "@/lib/branching";
 import { interpolate } from "@/lib/interpolate";
 import {
   resolveTheme,
   type FormDefinition,
   type Step,
 } from "@/lib/schema";
-import {
-  defaultLinearNext,
-  findStep,
-  useFormStore,
-  type AnswerValue,
-} from "@/lib/store";
+import { findStep, useFormStore, type AnswerValue } from "@/lib/store";
 import { useFormSubmit } from "@/lib/use-form-submit";
 import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
@@ -45,6 +41,29 @@ export function FormRunner({ form, embedded = false }: Props) {
   }, [form, setForm]);
 
   useTrackingCapture(form);
+
+  // When embedded in an iframe, broadcast height changes so the parent
+  // (embed.js) can resize the iframe smoothly as steps change.
+  useEffect(() => {
+    if (!embedded || typeof window === "undefined") return;
+    if (typeof ResizeObserver === "undefined") return;
+    let lastHeight = 0;
+    const send = (h: number) => {
+      if (Math.abs(h - lastHeight) < 2) return;
+      lastHeight = h;
+      window.parent?.postMessage(
+        { type: "spark-forms:resize", height: h, slug: form.slug },
+        "*",
+      );
+    };
+    const ro = new ResizeObserver((entries) => {
+      const e = entries[0];
+      if (e) send(Math.ceil(e.contentRect.height));
+    });
+    ro.observe(document.documentElement);
+    send(document.documentElement.scrollHeight);
+    return () => ro.disconnect();
+  }, [embedded, form.slug]);
 
   const honeypotRef = useRef<HTMLInputElement | null>(null);
   const { submit } = useFormSubmit({
@@ -76,7 +95,7 @@ export function FormRunner({ form, embedded = false }: Props) {
   const onBeforeAdvance = useCallback(async (): Promise<boolean> => {
     const state = useFormStore.getState();
     if (!state.currentStepId) return true;
-    const nextId = defaultLinearNext({
+    const nextId = resolveNextStep({
       currentStepId: state.currentStepId,
       steps: state.steps,
       answers: state.answers,
@@ -238,7 +257,7 @@ function StepView({
       if (stateErr) setError(stateErr);
       return;
     }
-    goNext(defaultLinearNext);
+    goNext(resolveNextStep);
   }, [goNext, onBeforeAdvance, status]);
 
   useEffect(() => {

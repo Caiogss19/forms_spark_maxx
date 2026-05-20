@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Spark Forms · embed demo</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+          Roboto, sans-serif;
+        max-width: 720px;
+        margin: 40px auto;
+        padding: 0 24px;
+        color: #0a0a0a;
+      }
+      h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      p {
+        color: #6b7280;
+        line-height: 1.5;
+      }
+      code {
+        background: #f5f5f5;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .frame {
+        margin-top: 32px;
+        border: 1px solid #e5e7eb;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Embed demo</h1>
+    <p>
+      Esta página simula uma página Framer hospedando o form via snippet.
+      Abra com <code>?utm_source=test&utm_campaign=embed</code> pra ver os
+      UTMs sendo encaminhados pro iframe.
+    </p>
+    <p>
+      Listener: o evento <code>spark:submission</code> é despachado no
+      <code>window</code> quando o lead converte. Abra o console e
+      inspecione <code>window.dataLayer</code> também.
+    </p>
+
+    <div class="frame">
+      <div
+        data-spark-form="demo-spark"
+        data-spark-min-height="640px"
+        data-spark-title="Demo Spark Forms"
+      ></div>
+    </div>
+
+    <script async src="/embed.js"></script>
+    <script>
+      window.addEventListener("spark:submission", function (e) {
+        console.log("[host] spark:submission", e.detail);
+      });
+    </script>
+  </body>
+</html>

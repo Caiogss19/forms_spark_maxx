@@ -72,6 +72,9 @@
         { "value": "marketing", "label": "Marketing / Growth", "emoji": "📈" },
         { "value": "social_media", "label": "Social Media", "emoji": "📱" },
         { "value": "other", "label": "Outro", "emoji": "👋" }
+      ],
+      "logic": [
+        { "if": { "field": "cargo", "op": "eq", "value": "social_media" }, "goto": "channels" }
       ]
     },
     {

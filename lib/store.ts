@@ -226,12 +226,3 @@ export function findStep(steps: Step[], id: string | null) {
   if (!id) return null;
   return steps.find((s) => s.id === id) ?? null;
 }
-
-export function defaultLinearNext({
-  currentStepId,
-  steps,
-}: SnapshotState): string | null {
-  const idx = steps.findIndex((s) => s.id === currentStepId);
-  if (idx === -1 || idx === steps.length - 1) return null;
-  return steps[idx + 1].id;
-}
