@@ -1,6 +1,3 @@
-// NOTE: Block 5 expands this with env override + MX lookup endpoint.
-// For now: regex format + default blocked domains, fully synchronous.
-
 export const DEFAULT_BLOCKED_DOMAINS: ReadonlySet<string> = new Set([
   "gmail.com",
   "googlemail.com",
@@ -48,7 +45,9 @@ const EMAIL_RE =
 export type EmailValidationReason =
   | "invalid_format"
   | "blocked_domain"
-  | "disposable";
+  | "disposable"
+  | "no_mx_record"
+  | "mx_lookup_failed";
 
 export interface EmailValidationOptions {
   corporateOnly?: boolean;
@@ -90,3 +89,26 @@ export function validateEmail(
 
   return { ok: true };
 }
+
+/**
+ * Parses the BLOCKED_EMAIL_DOMAINS env var as a CSV. Empty/missing
+ * returns null so callers fall back to DEFAULT_BLOCKED_DOMAINS.
+ * Server-side use only.
+ */
+export function getBlockedDomainsFromEnv(): Set<string> | null {
+  const raw = process.env.BLOCKED_EMAIL_DOMAINS;
+  if (!raw) return null;
+  const domains = raw
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter((d) => d.length > 0);
+  return domains.length > 0 ? new Set(domains) : null;
+}
+
+/**
+ * Resolved blocklist for server-side checks: env override OR default.
+ */
+export function getEffectiveBlockedDomains(): Set<string> {
+  return getBlockedDomainsFromEnv() ?? new Set(DEFAULT_BLOCKED_DOMAINS);
+}
+
