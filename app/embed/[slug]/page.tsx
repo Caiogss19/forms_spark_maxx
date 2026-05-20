@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { FormRunner } from "@/components/form-runner/FormRunner";
+import { Runner } from "@/components/form-runner";
 import { FormNotFoundError, getFormBySlug, getFormSlugs } from "@/lib/forms";
 
 interface PageProps {
@@ -28,7 +28,7 @@ export default async function EmbedPage({ params, searchParams }: PageProps) {
   const transparent = sp.transparent === "1";
   return (
     <div data-spark-embed style={transparent ? { background: "transparent" } : undefined}>
-      <FormRunner form={form} embedded />
+      <Runner form={form} embedded />
     </div>
   );
 }

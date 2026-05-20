@@ -4,6 +4,7 @@
   "description": "Showcase de todos os 17 tipos de campo — use como referência ao criar novos formulários.",
   "estimatedMinutes": 2,
   "language": "pt-BR",
+  "layout": "single_page",
   "conversionIdentifier": "Demo - Spark Forms",
   "product": "generico",
   "tags": ["forms", "demo", "spark"],
@@ -72,9 +73,6 @@
         { "value": "marketing", "label": "Marketing / Growth", "emoji": "📈" },
         { "value": "social_media", "label": "Social Media", "emoji": "📱" },
         { "value": "other", "label": "Outro", "emoji": "👋" }
-      ],
-      "logic": [
-        { "if": { "field": "cargo", "op": "eq", "value": "social_media" }, "goto": "channels" }
       ]
     },
     {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { FormRunner } from "@/components/form-runner/FormRunner";
+import { Runner } from "@/components/form-runner";
 import { FormNotFoundError, getFormBySlug, getFormSlugs } from "@/lib/forms";
 
 interface RouteParams {
@@ -39,5 +39,5 @@ export default async function FormPage({ params }: PageProps) {
     if (err instanceof FormNotFoundError) notFound();
     throw err;
   });
-  return <FormRunner form={form} />;
+  return <Runner form={form} />;
 }

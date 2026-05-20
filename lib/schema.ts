@@ -126,6 +126,7 @@ export const FormSchema = z.object({
   description: z.string().optional(),
   estimatedMinutes: z.number().optional(),
   language: z.enum(["pt-BR", "en-US"]).default("pt-BR"),
+  layout: z.enum(["stepped", "single_page"]).default("stepped"),
   theme: ThemeSchema.optional(),
   webhookUrl: z.url().optional(),
   webhookAuth: z.string().optional(),
