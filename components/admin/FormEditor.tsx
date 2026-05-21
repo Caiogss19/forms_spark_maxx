@@ -330,15 +330,6 @@ export function FormEditor({ initialForm }: Props) {
                 }
               />
             </Field>
-            <Field label="Raio dos inputs (CSS)">
-              <Input
-                placeholder="ex.: 9999px ou 0.5rem"
-                value={form.theme?.inputRadius ?? ""}
-                onChange={(e) =>
-                  patchTheme({ inputRadius: e.target.value || undefined })
-                }
-              />
-            </Field>
             <Field label="Modo">
               <Select
                 value={form.theme?.mode ?? "auto"}
@@ -461,6 +452,39 @@ export function FormEditor({ initialForm }: Props) {
           </div>
         </section>
 
+        {/* Border radii — card / inputs / CTA */}
+        <section className="rounded-2xl border border-border p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Bordas e cantos (radius)
+          </h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Use os presets pra trocar rápido ou digite qualquer valor CSS
+            (px, rem, %). <code>9999px</code> deixa pílula.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <RadiusField
+              label="Raio do card"
+              placeholder="1rem"
+              value={form.theme?.cardBorderRadius}
+              onChange={(v) =>
+                patchTheme({ cardBorderRadius: v || undefined })
+              }
+            />
+            <RadiusField
+              label="Raio dos inputs"
+              placeholder="0.5rem"
+              value={form.theme?.inputRadius}
+              onChange={(v) => patchTheme({ inputRadius: v || undefined })}
+            />
+            <RadiusField
+              label="Raio do botão CTA"
+              placeholder="igual ao input"
+              value={form.theme?.ctaRadius}
+              onChange={(v) => patchTheme({ ctaRadius: v || undefined })}
+            />
+          </div>
+        </section>
+
         {/* Per-element colors and typography weights */}
         <section className="rounded-2xl border border-border p-5">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -577,15 +601,6 @@ export function FormEditor({ initialForm }: Props) {
                 patchTheme({ ctaForeground: v || undefined })
               }
             />
-            <Field label="Raio do CTA (CSS)">
-              <Input
-                placeholder="ex.: 9999px / 0.5rem / 0"
-                value={form.theme?.ctaRadius ?? ""}
-                onChange={(e) =>
-                  patchTheme({ ctaRadius: e.target.value || undefined })
-                }
-              />
-            </Field>
           </div>
         </section>
 
@@ -862,6 +877,63 @@ function SizeField({
       <span className="block text-[10px] text-muted-foreground">
         Default: <code>{placeholder}</code>
       </span>
+    </label>
+  );
+}
+
+const RADIUS_PRESETS: { label: string; value: string }[] = [
+  { label: "Reto", value: "0" },
+  { label: "Suave", value: "0.5rem" },
+  { label: "Arredondado", value: "1rem" },
+  { label: "Pílula", value: "9999px" },
+];
+
+function RadiusField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (v: string | undefined) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <Input
+        value={value ?? ""}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value || undefined)}
+      />
+      <div className="flex flex-wrap gap-1.5">
+        {RADIUS_PRESETS.map((preset) => {
+          const active = (value ?? "") === preset.value;
+          return (
+            <button
+              key={preset.value}
+              type="button"
+              onClick={() => onChange(preset.value)}
+              className={cn(
+                "rounded-md border px-2 py-1 text-[11px] transition-colors",
+                active
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          className="rounded-md border border-dashed border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted"
+        >
+          Resetar
+        </button>
+      </div>
     </label>
   );
 }
