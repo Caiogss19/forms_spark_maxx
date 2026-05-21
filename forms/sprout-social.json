@@ -23,7 +23,19 @@
     "titleAlign": "center",
     "showFormChrome": false,
     "transparentBackground": true,
-    "transparentCard": true
+    "transparentCard": true,
+    "formWidth": "390px",
+    "formMinHeight": "486px",
+    "formPadding": "20px",
+    "titleSize": "22px",
+    "descriptionSize": "13px",
+    "inputHeight": "40px",
+    "inputTextSize": "14px",
+    "fieldGap": "10px",
+    "ctaGap": "30px",
+    "ctaHeight": "40px",
+    "ctaTextSize": "14px",
+    "lgpdSize": "11px"
   },
   "steps": [
     {
