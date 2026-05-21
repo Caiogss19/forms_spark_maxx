@@ -17,11 +17,10 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-// Render per-request so admin edits saved to Supabase show up on the
-// public page without redeploying. Without this, generateStaticParams
-// above bakes a snapshot of the theme into the build output.
-export const dynamic = "force-dynamic";
-
+// Cached static between admin saves. The admin PUT/DELETE handlers
+// call revalidatePath('/f/[slug]') to invalidate immediately when the
+// schema changes, so the public page stays in sync with the editor
+// without paying a Supabase round-trip on every visit.
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {

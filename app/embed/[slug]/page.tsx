@@ -14,11 +14,10 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-// Render per-request so admin edits saved to Supabase show up on the
-// embed without redeploying. Without this, generateStaticParams above
-// bakes a snapshot of the theme into the build output.
-export const dynamic = "force-dynamic";
-
+// Cached static between admin saves. The admin PUT/DELETE handlers
+// call revalidatePath('/embed/[slug]') to invalidate immediately when
+// the schema changes, so the embed stays in sync with the editor
+// without paying a Supabase round-trip on every public request.
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
