@@ -93,16 +93,49 @@
   // running at the top level, we register the listener inline so any
   // descendant iframe can ask us directly.
 
+  var cachedHostUrl = null;
+  var cachedHostReferrer = null;
+  var hostUrlReceived = false;
+
   function askTopForUrl(slug) {
     try {
       if (!window.top || window.top === window) return;
       window.top.postMessage(
-        { type: "spark-forms:host-url-request", slug: slug },
+        { type: "spark-forms:host-url-request", slug: slug || "_any" },
         "*",
       );
     } catch (e) {
       /* ignore */
     }
+  }
+
+  // Repeatedly ask the top page for the host URL until we get a
+  // response (host listener may load slightly after embed.js boots) or
+  // until we give up. On give-up we log a hint pointing the user at
+  // the snippet they need to add to their site head.
+  function askTopForUrlWithRetries(slug) {
+    var attempts = 0;
+    var maxAttempts = 10;
+    function tick() {
+      if (hostUrlReceived || attempts >= maxAttempts) {
+        if (!hostUrlReceived) {
+          try {
+            console.warn(
+              "[spark-forms] No response to host-url-request after " +
+                maxAttempts +
+                " attempts. The form's payload will only contain the page origin (no path / no UTMs). To fix: paste the host listener snippet from /admin → Embed into the site's <head>.",
+            );
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        return;
+      }
+      attempts++;
+      askTopForUrl(slug);
+      setTimeout(tick, 250);
+    }
+    tick();
   }
 
   function utmsFromUrl(url) {
@@ -275,7 +308,7 @@
     // allowed). Useful when we're sitting inside Framer/Webflow's srcdoc
     // wrapper that strips path/query from document.referrer. The host
     // page needs a tiny listener — see the snippet in the embed modal.
-    askTopForUrl(slug);
+    askTopForUrlWithRetries(slug);
 
     iframe.addEventListener("load", function () {
       try {
@@ -531,13 +564,17 @@
       data.type === "spark-forms:host-url-response" &&
       typeof data.url === "string"
     ) {
-      broadcastHostInfo(data.url, data.referrer);
+      hostUrlReceived = true;
+      cachedHostUrl = data.url;
+      cachedHostReferrer = data.referrer || "";
+      broadcastHostInfo(cachedHostUrl, cachedHostReferrer);
       return;
     }
 
-    // Iframe announces it's listening — re-send host-ready so the form
-    // can suppress its in-form fallback modal even if the initial
-    // post-on-load fired before the iframe's listener was wired up.
+    // Iframe announces it's listening — re-send host-ready AND, if we
+    // already have a host URL cached from a previous host-url-response,
+    // re-broadcast it. Covers the race where the host responded before
+    // the iframe's React tree mounted its message listener.
     if (data.type === "spark-forms:iframe-ready") {
       try {
         event.source &&
@@ -549,6 +586,22 @@
             },
             "*",
           );
+        // If we already have the host URL cached (because the top
+        // listener responded before this iframe's React tree mounted),
+        // re-send it so landing_page/UTMs aren't lost to that race.
+        if (hostUrlReceived && cachedHostUrl && event.source) {
+          var utms = utmsFromUrl(cachedHostUrl);
+          var payload = {
+            landing_page: cachedHostUrl,
+            page_url: cachedHostUrl,
+            referrer: cachedHostReferrer || "",
+          };
+          for (var k in utms) payload[k] = utms[k];
+          event.source.postMessage(
+            { type: "spark-forms:tracking", payload: payload },
+            "*",
+          );
+        }
       } catch (e) {
         /* ignore */
       }
