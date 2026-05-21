@@ -53,7 +53,16 @@ function EmbedModal({ slug, onClose }: { slug: string; onClose: () => void }) {
   const origin = window.location.origin;
 
   const snippet = `<div data-spark-form="${slug}" data-spark-min-height="640px"></div>
-<script async src="${origin}/embed.js"></script>`;
+<script async src="${origin}/embed.js?v=8"></script>`;
+
+  const hostSnippet = `<!-- Cole UMA VEZ no <head> do site (Framer: Site Settings → Custom Code → End of <head>).
+     Garante que os UTMs da página real cheguem no payload do form. -->
+<script>
+window.addEventListener('message',function(e){
+  if(e.data&&e.data.type==='spark-forms:host-url-request'){
+    try{e.source&&e.source.postMessage({type:'spark-forms:host-url-response',url:location.href,referrer:document.referrer},'*');}catch(_){}}
+});
+</script>`;
 
   const iframe = `<iframe
   src="${origin}/embed/${slug}"
@@ -94,13 +103,18 @@ function EmbedModal({ slug, onClose }: { slug: string; onClose: () => void }) {
         </div>
         <div className="space-y-5 overflow-y-auto px-6 py-5">
           <CopyBlock
-            title="Snippet (recomendado pro Framer)"
+            title="1) Snippet do form (cole onde o form deve aparecer)"
             hint="Auto-resize, encaminha UTMs/cookies da página pai, dispara spark:submission no submit."
             code={snippet}
           />
           <CopyBlock
-            title="Iframe puro"
-            hint="Altura fixa 640px, sem forward de tracking. Cole em qualquer plataforma que aceite HTML."
+            title="2) Host listener (cole UMA vez no <head> do site)"
+            hint="Indispensável pra Framer/Webflow: garante que UTMs e URL real cheguem no payload (sem isso o referrer fica só com a origem)."
+            code={hostSnippet}
+          />
+          <CopyBlock
+            title="Iframe puro (sem tracking)"
+            hint="Altura fixa 640px, sem forward de UTMs. Use só se não puder rodar JS."
             code={iframe}
           />
           <CopyBlock

@@ -12,12 +12,16 @@
   var iframesBySlug = {};
 
   /**
-   * Returns the URL of the page the user is actually looking at. Handles
-   * three nesting cases:
-   *  1. Plain embed (snippet on the page itself): location.href is right.
-   *  2. Framer/Webflow/etc. that wrap the snippet in a srcdoc iframe:
-   *     location.href === "about:srcdoc"; document.referrer is the host.
-   *  3. Same-origin nested iframes: window.top.location.href is the truth.
+   * Resolves the actual host page URL. Falls through three tiers and
+   * memoizes the result.
+   *
+   *  1. window.top.location.href — same-origin all the way up.
+   *  2. document.referrer when we're in a srcdoc/about: iframe (Framer
+   *     etc.). Note: many hosts ship Referrer-Policy: strict-origin
+   *     which strips path + query down to just the origin. When that
+   *     happens we still report the origin but rely on the postMessage
+   *     fallback (asked from window.top) for the full URL with UTMs.
+   *  3. location.href — plain non-wrapped embed.
    */
   function resolveHostUrl() {
     try {
@@ -78,6 +82,106 @@
       }
     }
     return null;
+  }
+
+  // ─── Top-page URL bridge (cross-origin) ───────────────────────────
+  // When embed.js lives inside a srcdoc wrapper (Framer), it cannot read
+  // window.top.location.href and document.referrer is often policy-
+  // stripped to just the origin. We ask the top window via postMessage;
+  // the host site provides the URL via a tiny listener it ships once
+  // (snippet shown in the admin Embed modal). When this code itself is
+  // running at the top level, we register the listener inline so any
+  // descendant iframe can ask us directly.
+
+  function askTopForUrl(slug) {
+    try {
+      if (!window.top || window.top === window) return;
+      window.top.postMessage(
+        { type: "spark-forms:host-url-request", slug: slug },
+        "*",
+      );
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function utmsFromUrl(url) {
+    var out = {};
+    try {
+      var qs = new URL(url).searchParams;
+      var keys = [
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "gclid",
+        "fbclid",
+        "ttclid",
+        "msclkid",
+      ];
+      for (var i = 0; i < keys.length; i++) {
+        var v = qs.get(keys[i]);
+        if (v) out[keys[i]] = v;
+      }
+    } catch (e) {
+      /* invalid URL — return empty */
+    }
+    return out;
+  }
+
+  function broadcastHostInfo(url, referrer) {
+    if (!url) return;
+    var utms = utmsFromUrl(url);
+    for (var slug in iframesBySlug) {
+      var iframe = iframesBySlug[slug];
+      if (!iframe || !iframe.contentWindow) continue;
+      var payload = {
+        landing_page: url,
+        page_url: url,
+        referrer: referrer || "",
+      };
+      for (var k in utms) payload[k] = utms[k];
+      try {
+        iframe.contentWindow.postMessage(
+          { type: "spark-forms:tracking", payload: payload },
+          "*",
+        );
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
+  // Auto-install the host listener when this script is loaded at the
+  // top level of a page (the common case — when the user pastes the
+  // snippet directly onto a Framer page, not inside an HTML embed
+  // block). Idempotent.
+  if (
+    typeof window !== "undefined" &&
+    window === window.top &&
+    !window.__sparkFormsHostListener
+  ) {
+    window.__sparkFormsHostListener = true;
+    window.addEventListener("message", function (e) {
+      var d = e.data;
+      if (!d || typeof d !== "object") return;
+      if (d.type === "spark-forms:host-url-request") {
+        try {
+          e.source &&
+            e.source.postMessage(
+              {
+                type: "spark-forms:host-url-response",
+                url: location.href,
+                referrer: document.referrer,
+              },
+              "*",
+            );
+        } catch (err) {
+          /* ignore */
+        }
+      }
+    });
   }
 
   function buildTrackingPayload() {
@@ -166,6 +270,12 @@
     host.innerHTML = "";
     host.appendChild(iframe);
     iframesBySlug[slug] = iframe;
+
+    // Ask the top page for its URL. Works cross-origin (postMessage is
+    // allowed). Useful when we're sitting inside Framer/Webflow's srcdoc
+    // wrapper that strips path/query from document.referrer. The host
+    // page needs a tiny listener — see the snippet in the embed modal.
+    askTopForUrl(slug);
 
     iframe.addEventListener("load", function () {
       try {
@@ -414,6 +524,16 @@
   function handleMessage(event) {
     var data = event.data;
     if (!data || typeof data !== "object") return;
+
+    // Top page responded with its true URL/referrer — propagate to all
+    // mounted iframes so they update landing_page/page_url and UTMs.
+    if (
+      data.type === "spark-forms:host-url-response" &&
+      typeof data.url === "string"
+    ) {
+      broadcastHostInfo(data.url, data.referrer);
+      return;
+    }
 
     // Iframe announces it's listening — re-send host-ready so the form
     // can suppress its in-form fallback modal even if the initial
