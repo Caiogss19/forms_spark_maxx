@@ -21,7 +21,9 @@
     "mutedForeground": "#9CA3AF",
     "showLabels": false,
     "titleAlign": "center",
-    "showFormChrome": false
+    "showFormChrome": false,
+    "transparentBackground": true,
+    "transparentCard": true
   },
   "steps": [
     {
