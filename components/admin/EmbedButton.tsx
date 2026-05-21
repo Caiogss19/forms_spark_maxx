@@ -53,15 +53,22 @@ function EmbedModal({ slug, onClose }: { slug: string; onClose: () => void }) {
   const origin = window.location.origin;
 
   const snippet = `<div data-spark-form="${slug}" data-spark-min-height="640px"></div>
-<script async src="${origin}/embed.js?v=8"></script>`;
+<script async src="${origin}/embed.js?v=9"></script>`;
 
-  const hostSnippet = `<!-- Cole UMA VEZ no <head> do site (Framer: Site Settings → Custom Code → End of <head>).
-     Garante que os UTMs da página real cheguem no payload do form. -->
+  const hostSnippet = `<!-- Cole UMA VEZ no <head> do site (Framer: Site Settings → Custom Code → Start of <head>).
+     Garante que os UTMs da página real cheguem no payload do form,
+     mesmo se o Framer/Next/qualquer SPA limpar ?utm_* via history.replaceState. -->
 <script>
-window.addEventListener('message',function(e){
-  if(e.data&&e.data.type==='spark-forms:host-url-request'){
-    try{e.source&&e.source.postMessage({type:'spark-forms:host-url-response',url:location.href,referrer:document.referrer},'*');}catch(_){}}
-});
+(function(){
+  var u=location.href,r=document.referrer;
+  window.addEventListener('message',function(e){
+    if(!e.data||e.data.type!=='spark-forms:host-url-request')return;
+    try{
+      var n=location.href;
+      e.source&&e.source.postMessage({type:'spark-forms:host-url-response',url:/[?&]utm_/i.test(n)?n:(/[?&]utm_/i.test(u)?u:n),referrer:document.referrer||r},'*');
+    }catch(_){}
+  });
+})();
 </script>`;
 
   const iframe = `<iframe
@@ -108,8 +115,8 @@ window.addEventListener('message',function(e){
             code={snippet}
           />
           <CopyBlock
-            title="2) Host listener (cole UMA vez no <head> do site)"
-            hint="Indispensável pra Framer/Webflow: garante que UTMs e URL real cheguem no payload (sem isso o referrer fica só com a origem)."
+            title="2) Host listener (cole UMA vez em Start of <head>)"
+            hint="Indispensável pra Framer/Webflow/qualquer SPA: o snippet captura a URL com ?utm_* assim que carrega, antes do router limpar a querystring. Sem isso, os UTMs somem do payload."
             code={hostSnippet}
           />
           <CopyBlock
