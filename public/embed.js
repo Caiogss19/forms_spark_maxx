@@ -190,23 +190,40 @@
   // top level of a page (the common case — when the user pastes the
   // snippet directly onto a Framer page, not inside an HTML embed
   // block). Idempotent.
+  //
+  // Snapshot location.href / document.referrer at script-load time so a
+  // SPA host (Framer, Next.js, etc.) that strips ?utm_* via
+  // history.replaceState before the iframe gets around to asking still
+  // sees the original URL with UTMs.
   if (
     typeof window !== "undefined" &&
     window === window.top &&
     !window.__sparkFormsHostListener
   ) {
     window.__sparkFormsHostListener = true;
+    var initialUrl = location.href;
+    var initialReferrer = document.referrer;
     window.addEventListener("message", function (e) {
       var d = e.data;
       if (!d || typeof d !== "object") return;
       if (d.type === "spark-forms:host-url-request") {
         try {
+          // Prefer the current URL when it still has UTMs (covers SPA
+          // navigations to deeper pages with new UTMs), and fall back to
+          // the load-time snapshot when the SPA has wiped them via
+          // history.replaceState before the iframe got around to asking.
+          var urlNow = location.href;
+          var chosen = /[?&]utm_/i.test(urlNow)
+            ? urlNow
+            : /[?&]utm_/i.test(initialUrl)
+              ? initialUrl
+              : urlNow;
           e.source &&
             e.source.postMessage(
               {
                 type: "spark-forms:host-url-response",
-                url: location.href,
-                referrer: document.referrer,
+                url: chosen,
+                referrer: document.referrer || initialReferrer,
               },
               "*",
             );
