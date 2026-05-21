@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { FormSchema } from "@/lib/schema";
@@ -6,6 +7,13 @@ import {
   isSupabaseConfigured,
   upsertFormRow,
 } from "@/lib/supabase";
+
+function revalidateFormRoutes(slug: string) {
+  // /f/[slug] and /embed/[slug] are ISR-cached; bust both so the next
+  // public visit re-renders with the freshly saved schema.
+  revalidatePath(`/f/${slug}`);
+  revalidatePath(`/embed/${slug}`);
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +79,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
       { status: 500 },
     );
   }
+  revalidateFormRoutes(slug);
   return Response.json({ ok: true });
 }
 
@@ -89,5 +98,6 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
       { status: 500 },
     );
   }
+  revalidateFormRoutes(slug);
   return Response.json({ ok: true });
 }
