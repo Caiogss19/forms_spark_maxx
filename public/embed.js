@@ -186,6 +186,75 @@
     }
   }
 
+  // UTM persistence keys on the parent page. We snapshot whatever
+  // tracking params we see (URL or first-touch storage) so a visitor
+  // who comes back without a querystring still triggers the correct
+  // attribution downstream.
+  var UTM_STORAGE_KEY = "spark:utms";
+  var TRACKING_PARAM_KEYS = [
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "gclid",
+    "fbclid",
+    "ttclid",
+    "msclkid",
+  ];
+
+  function readStoredUtms() {
+    try {
+      var raw = window.localStorage.getItem(UTM_STORAGE_KEY);
+      if (!raw) return {};
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function persistUtmsFromUrl(url) {
+    try {
+      var qs = new URL(url, location.href).searchParams;
+      var fresh = {};
+      for (var i = 0; i < TRACKING_PARAM_KEYS.length; i++) {
+        var k = TRACKING_PARAM_KEYS[i];
+        var v = qs.get(k);
+        if (v) fresh[k] = v;
+      }
+      if (!Object.keys(fresh).length) return;
+      var merged = readStoredUtms();
+      for (var key in fresh) merged[key] = fresh[key];
+      window.localStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(merged));
+    } catch (e) {
+      /* private mode / quota / parse — silently no-op */
+    }
+  }
+
+  // Returns the input URL augmented with any persisted UTMs that are
+  // not already present in its querystring. Used when the live URL has
+  // been stripped (Framer / SPA replaceState) and the load-time
+  // snapshot also lacks UTMs — typically a returning visitor.
+  function augmentUrlWithStoredUtms(url) {
+    try {
+      var stored = readStoredUtms();
+      if (!Object.keys(stored).length) return url;
+      var u = new URL(url, location.href);
+      var changed = false;
+      for (var i = 0; i < TRACKING_PARAM_KEYS.length; i++) {
+        var k = TRACKING_PARAM_KEYS[i];
+        if (!u.searchParams.has(k) && stored[k]) {
+          u.searchParams.set(k, stored[k]);
+          changed = true;
+        }
+      }
+      return changed ? u.toString() : url;
+    } catch (e) {
+      return url;
+    }
+  }
+
   // Auto-install the host listener when this script is loaded at the
   // top level of a page (the common case — when the user pastes the
   // snippet directly onto a Framer page, not inside an HTML embed
@@ -203,6 +272,10 @@
     window.__sparkFormsHostListener = true;
     var initialUrl = location.href;
     var initialReferrer = document.referrer;
+    // First-touch persistence: if the visitor lands with UTMs, save
+    // them so a SPA replaceState — or a return visit — can still
+    // surface them downstream.
+    persistUtmsFromUrl(initialUrl);
     window.addEventListener("message", function (e) {
       var d = e.data;
       if (!d || typeof d !== "object") return;
@@ -212,12 +285,15 @@
           // navigations to deeper pages with new UTMs), and fall back to
           // the load-time snapshot when the SPA has wiped them via
           // history.replaceState before the iframe got around to asking.
+          // If neither URL has UTMs, hydrate from localStorage so a
+          // returning visitor still gets attribution.
           var urlNow = location.href;
+          persistUtmsFromUrl(urlNow);
           var chosen = /[?&]utm_/i.test(urlNow)
             ? urlNow
             : /[?&]utm_/i.test(initialUrl)
               ? initialUrl
-              : urlNow;
+              : augmentUrlWithStoredUtms(urlNow);
           e.source &&
             e.source.postMessage(
               {
@@ -237,25 +313,21 @@
   function buildTrackingPayload() {
     var hostUrl = resolveHostUrl();
     var qs = resolveHostQuery();
-    var keys = [
-      "utm_source",
-      "utm_medium",
-      "utm_campaign",
-      "utm_term",
-      "utm_content",
-      "gclid",
-      "fbclid",
-      "ttclid",
-      "msclkid",
-    ];
+    var stored = {};
+    try {
+      if (window === window.top) stored = readStoredUtms();
+    } catch (e) {
+      /* ignore */
+    }
     var payload = {
       referrer: resolveHostReferrer(),
       landing_page: hostUrl,
       page_url: hostUrl,
     };
-    for (var i = 0; i < keys.length; i++) {
-      var v = qs.get(keys[i]);
-      if (v) payload[keys[i]] = v;
+    for (var i = 0; i < TRACKING_PARAM_KEYS.length; i++) {
+      var k = TRACKING_PARAM_KEYS[i];
+      var v = qs.get(k) || stored[k];
+      if (v) payload[k] = v;
     }
     var rdtrk = getCookie("rdtrk");
     if (rdtrk) payload.rdtrk = rdtrk;
@@ -278,22 +350,24 @@
     if (transparent === "1" || transparent === "true") src += "?transparent=1";
 
     // Forward UTMs into the iframe URL so the form sees them even before
-    // postMessage fires (covers the very first SSR render).
+    // postMessage fires (covers the very first SSR render). Falls back
+    // to localStorage when the live URL has been stripped (Framer SPA
+    // replaceState) or the visitor is returning without UTMs.
     var parentQs = resolveHostQuery();
-    var fwdKeys = [
-      "utm_source",
-      "utm_medium",
-      "utm_campaign",
-      "utm_term",
-      "utm_content",
-      "gclid",
-      "fbclid",
-    ];
+    var storedUtms = (function () {
+      try {
+        if (window === window.top) return readStoredUtms();
+        return {};
+      } catch (e) {
+        return {};
+      }
+    })();
     var hasQuery = src.indexOf("?") >= 0;
-    for (var i = 0; i < fwdKeys.length; i++) {
-      var v = parentQs.get(fwdKeys[i]);
+    for (var i = 0; i < TRACKING_PARAM_KEYS.length; i++) {
+      var key = TRACKING_PARAM_KEYS[i];
+      var v = parentQs.get(key) || storedUtms[key];
       if (v) {
-        src += (hasQuery ? "&" : "?") + fwdKeys[i] + "=" + encodeURIComponent(v);
+        src += (hasQuery ? "&" : "?") + key + "=" + encodeURIComponent(v);
         hasQuery = true;
       }
     }
@@ -306,7 +380,6 @@
     src += "&_pr=" + encodeURIComponent(resolveHostReferrer());
 
     var iframe = document.createElement("iframe");
-    iframe.src = src;
     iframe.title = host.getAttribute("data-spark-title") || "Spark Forms";
     iframe.loading = "lazy";
     iframe.setAttribute("data-spark-mounted", "1");
@@ -317,16 +390,9 @@
     iframe.style.minHeight = host.getAttribute("data-spark-min-height") || "560px";
     iframe.allow = "clipboard-write";
 
-    host.innerHTML = "";
-    host.appendChild(iframe);
-    iframesBySlug[slug] = iframe;
-
-    // Ask the top page for its URL. Works cross-origin (postMessage is
-    // allowed). Useful when we're sitting inside Framer/Webflow's srcdoc
-    // wrapper that strips path/query from document.referrer. The host
-    // page needs a tiny listener — see the snippet in the embed modal.
-    askTopForUrlWithRetries(slug);
-
+    // Register the load handler before assigning `src` and appending —
+    // a cached iframe can fire `load` synchronously inside appendChild,
+    // and we'd miss the chance to post tracking on first paint.
     iframe.addEventListener("load", function () {
       try {
         // Handshake: tells the iframe that this host has the latest
@@ -354,6 +420,17 @@
           );
       }
     });
+
+    iframe.src = src;
+    host.innerHTML = "";
+    host.appendChild(iframe);
+    iframesBySlug[slug] = iframe;
+
+    // Ask the top page for its URL. Works cross-origin (postMessage is
+    // allowed). Useful when we're sitting inside Framer/Webflow's srcdoc
+    // wrapper that strips path/query from document.referrer. The host
+    // page needs a tiny listener — see the snippet in the embed modal.
+    askTopForUrlWithRetries(slug);
   }
 
   // ─── Disqualifier modal (parent-page overlay) ─────────────────────
