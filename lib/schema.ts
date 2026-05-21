@@ -23,11 +23,20 @@ export const FIELD_TYPES = [
 export const FieldType = z.enum(FIELD_TYPES);
 export type FieldTypeValue = z.infer<typeof FieldType>;
 
+export const DisqualifyConfigSchema = z.object({
+  title: z.string().optional(),
+  message: z.string().min(1),
+  ctaLabel: z.string().optional(),
+  ctaUrl: z.string().optional(),
+});
+export type DisqualifyConfig = z.infer<typeof DisqualifyConfigSchema>;
+
 export const StepOptionSchema = z.object({
   value: z.string(),
   label: z.string(),
   emoji: z.string().optional(),
   description: z.string().optional(),
+  disqualify: DisqualifyConfigSchema.optional(),
 });
 export type StepOption = z.infer<typeof StepOptionSchema>;
 
@@ -99,8 +108,66 @@ export const ThemeSchema = z.object({
   showLabels: z.boolean().optional(),
   titleAlign: z.enum(["left", "center"]).optional(),
   showFormChrome: z.boolean().optional(),
+  // Single-page sizing — CSS values (px/rem/em/%). Defaults match the
+  // compact-form spec used in production embeds.
+  formWidth: z.string().optional(),
+  formMinHeight: z.string().optional(),
+  formPadding: z.string().optional(),
+  titleSize: z.string().optional(),
+  descriptionSize: z.string().optional(),
+  inputHeight: z.string().optional(),
+  inputTextSize: z.string().optional(),
+  fieldGap: z.string().optional(),
+  ctaGap: z.string().optional(),
+  ctaHeight: z.string().optional(),
+  ctaTextSize: z.string().optional(),
+  lgpdSize: z.string().optional(),
+  // Backgrounds / chrome toggles — critical for embedding into Framer,
+  // Webflow, etc. where the form should inherit the parent page's bg.
+  transparentBackground: z.boolean().optional(),
+  transparentCard: z.boolean().optional(),
+  hideInputBorder: z.boolean().optional(),
+  hideCardShadow: z.boolean().optional(),
+  removeFormPadding: z.boolean().optional(),
+  // Per-element colors (string CSS values).
+  titleColor: z.string().optional(),
+  labelColor: z.string().optional(),
+  descriptionColor: z.string().optional(),
+  errorColor: z.string().optional(),
+  cardBorderColor: z.string().optional(),
+  cardBorderWidth: z.string().optional(),
+  inputBorderWidth: z.string().optional(),
+  cardShadow: z.string().optional(),
+  // Typography weights — "300" | "400" | "500" | "600" | "700".
+  titleWeight: z.string().optional(),
+  labelWeight: z.string().optional(),
+  ctaWeight: z.string().optional(),
+  // Line height & letter spacing — accept any CSS value.
+  titleLineHeight: z.string().optional(),
+  descriptionLineHeight: z.string().optional(),
+  labelLineHeight: z.string().optional(),
+  titleLetterSpacing: z.string().optional(),
+  // CTA color overrides (independent of "primary").
+  ctaBackground: z.string().optional(),
+  ctaForeground: z.string().optional(),
+  ctaRadius: z.string().optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
+
+export const SIZE_DEFAULTS = {
+  formWidth: "390px",
+  formMinHeight: "486px",
+  formPadding: "20px",
+  titleSize: "22px",
+  descriptionSize: "13px",
+  inputHeight: "40px",
+  inputTextSize: "14px",
+  fieldGap: "10px",
+  ctaGap: "30px",
+  ctaHeight: "40px",
+  ctaTextSize: "14px",
+  lgpdSize: "11px",
+} as const;
 
 export const DEFAULT_THEME: Required<
   Pick<Theme, "primary" | "background" | "foreground" | "fontFamily" | "mode">
@@ -145,6 +212,7 @@ export const FormSchema = z.object({
   tags: z.array(z.string()).default([]),
   redirectOnSuccess: z.url().optional(),
   successMessage: z.string().optional(),
+  lgpdNotice: z.string().optional(),
   hiddenFields: z.array(HiddenFieldSchema).default([]),
   steps: z.array(StepSchema).min(1),
 });
@@ -156,4 +224,35 @@ export function safeParseForm(input: unknown) {
 
 export function parseForm(input: unknown): FormDefinition {
   return FormSchema.parse(input);
+}
+
+/**
+ * Walks the form steps and answers; returns the first disqualifier
+ * config triggered by a currently-selected option, or null. Used by the
+ * runner to gate advancement and surface a blocking modal.
+ */
+export function findActiveDisqualifier(
+  form: FormDefinition,
+  answers: Record<string, unknown>,
+): { config: DisqualifyConfig; stepId: string; optionValue: string } | null {
+  for (const step of form.steps) {
+    if (!step.options || step.options.length === 0) continue;
+    const key = step.mapTo ?? step.id;
+    const answer = answers[key];
+    if (answer == null || answer === "") continue;
+    const selectedValues = Array.isArray(answer)
+      ? (answer as unknown[]).map(String)
+      : [String(answer)];
+    for (const sv of selectedValues) {
+      const opt = step.options.find((o) => o.value === sv);
+      if (opt?.disqualify) {
+        return {
+          config: opt.disqualify,
+          stepId: step.id,
+          optionValue: opt.value,
+        };
+      }
+    }
+  }
+  return null;
 }

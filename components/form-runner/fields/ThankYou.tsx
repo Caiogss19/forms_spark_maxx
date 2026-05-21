@@ -16,6 +16,8 @@ export function ThankYou({ redirectUrl }: Props) {
       {redirectUrl ? (
         <a
           href={redirectUrl}
+          target="_top"
+          rel="noopener"
           className="text-sm font-medium underline underline-offset-4"
         >
           Ir para a próxima etapa →

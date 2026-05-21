@@ -1,31 +1,12 @@
 import { ArrowUpRight, Pencil } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { LogoutButton } from "@/components/admin/LogoutButton";
-import { isAdmin, isAdminEnabled } from "@/lib/admin-auth";
+import { EmbedButton } from "@/components/admin/EmbedButton";
 import { getFormBySlug, getFormSlugs } from "@/lib/forms";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
-  if (!isAdminEnabled()) {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-20 text-sm">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight">
-          Editor desativado
-        </h1>
-        <p className="text-muted-foreground">
-          Defina <code className="rounded bg-muted px-1 py-0.5">ADMIN_PASSWORD</code>{" "}
-          no projeto pra ativar.
-        </p>
-      </main>
-    );
-  }
-  if (!(await isAdmin())) {
-    redirect("/admin/login?next=/admin");
-  }
-
   const slugs = await getFormSlugs();
   const forms = await Promise.all(
     slugs.map(async (slug) => {
@@ -53,7 +34,6 @@ export default async function AdminHome() {
           >
             Spark Forms
           </Link>
-          <LogoutButton />
         </div>
       </header>
 
@@ -96,6 +76,7 @@ export default async function AdminHome() {
                     <Pencil className="h-3.5 w-3.5" aria-hidden />
                     Editar
                   </Link>
+                  <EmbedButton slug={f.slug} />
                   <Link
                     href={`/f/${f.slug}`}
                     target="_blank"

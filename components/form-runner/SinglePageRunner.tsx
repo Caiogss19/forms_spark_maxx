@@ -6,7 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { interpolate } from "@/lib/interpolate";
 import {
+  findActiveDisqualifier,
   resolveTheme,
+  SIZE_DEFAULTS,
   type FormDefinition,
   type Step,
 } from "@/lib/schema";
@@ -14,7 +16,9 @@ import { useFormStore, type AnswerValue } from "@/lib/store";
 import { useFormSubmit } from "@/lib/use-form-submit";
 import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
+import { DisqualifierModal } from "./DisqualifierModal";
 import { StepRenderer } from "./StepRenderer";
+import { useDisqualifierBridge } from "./useDisqualifierBridge";
 
 interface Props {
   form: FormDefinition;
@@ -67,32 +71,86 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       }
       if (form.redirectOnSuccess) {
         setTimeout(() => {
+          // When embedded, redirect the top window (host site), not just
+          // the iframe — otherwise the "thank-you" page loads inside the
+          // little 390x486 form area instead of taking over the page.
+          if (embedded && typeof window !== "undefined") {
+            window.parent?.postMessage(
+              {
+                type: "spark-forms:redirect",
+                url: form.redirectOnSuccess,
+                slug: form.slug,
+              },
+              "*",
+            );
+            try {
+              if (window.top && window.top !== window) {
+                window.top.location.href = form.redirectOnSuccess!;
+                return;
+              }
+            } catch {
+              /* sandboxed top-navigation: parent handles via postMessage */
+            }
+          }
           window.location.href = form.redirectOnSuccess!;
         }, 1500);
       }
     },
   });
 
+  const sizes = useMemo(() => {
+    const o = form.theme ?? {};
+    return {
+      formWidth: o.formWidth ?? SIZE_DEFAULTS.formWidth,
+      formMinHeight: o.formMinHeight ?? SIZE_DEFAULTS.formMinHeight,
+      formPadding: o.formPadding ?? SIZE_DEFAULTS.formPadding,
+      titleSize: o.titleSize ?? SIZE_DEFAULTS.titleSize,
+      descriptionSize: o.descriptionSize ?? SIZE_DEFAULTS.descriptionSize,
+      inputHeight: o.inputHeight ?? SIZE_DEFAULTS.inputHeight,
+      inputTextSize: o.inputTextSize ?? SIZE_DEFAULTS.inputTextSize,
+      fieldGap: o.fieldGap ?? SIZE_DEFAULTS.fieldGap,
+      ctaGap: o.ctaGap ?? SIZE_DEFAULTS.ctaGap,
+      ctaHeight: o.ctaHeight ?? SIZE_DEFAULTS.ctaHeight,
+      ctaTextSize: o.ctaTextSize ?? SIZE_DEFAULTS.ctaTextSize,
+      lgpdSize: o.lgpdSize ?? SIZE_DEFAULTS.lgpdSize,
+    };
+  }, [form.theme]);
+
   const themeVars = useMemo(() => {
     const t = resolveTheme(form.theme);
     const o = form.theme ?? {};
+    const formBg = o.transparentBackground ? "transparent" : t.background;
+    const cardBg = o.transparentCard
+      ? "transparent"
+      : (o.cardBackground ?? "transparent");
+    const inputBorder = o.hideInputBorder
+      ? "transparent"
+      : (o.inputBorder ?? "var(--border)");
     return {
       "--form-primary": t.primary,
       "--form-primary-foreground": o.primaryForeground ?? "#FFFFFF",
-      "--form-background": t.background,
+      "--form-background": formBg,
       "--form-foreground": t.foreground,
-      "--form-card-bg": o.cardBackground ?? "transparent",
+      "--form-card-bg": cardBg,
       "--form-card-radius": o.cardBorderRadius ?? "1rem",
       "--form-input-bg": o.inputBackground ?? "transparent",
-      "--form-input-border": o.inputBorder ?? "var(--border)",
-      "--form-input-focus-border": o.inputBorder ?? "var(--foreground)",
+      "--form-input-border": inputBorder,
+      "--form-input-focus-border": o.hideInputBorder
+        ? "transparent"
+        : (o.inputBorder ?? "var(--foreground)"),
       "--form-input-radius": o.inputRadius ?? "0.5rem",
       "--form-input-placeholder":
         o.mutedForeground ?? "var(--muted-foreground)",
       "--form-muted-foreground":
         o.mutedForeground ?? "var(--muted-foreground)",
+      // Pipe sizing into the inputs/dropdown shared CSS vars.
+      "--form-input-height": sizes.inputHeight,
+      "--form-input-text-size": sizes.inputTextSize,
+      "--form-input-border-width": o.hideInputBorder
+        ? "0"
+        : (o.inputBorderWidth ?? "1px"),
     } as React.CSSProperties;
-  }, [form.theme]);
+  }, [form.theme, sizes.inputHeight, sizes.inputTextSize]);
 
   const showLabels = form.theme?.showLabels !== false;
   const titleAlign = form.theme?.titleAlign ?? "left";
@@ -123,8 +181,41 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
     return allOk;
   }, []);
 
+  const disqualifier = useMemo(
+    () => findActiveDisqualifier(form, answers),
+    [form, answers],
+  );
+
+  // Clearing the disqualifying answer on dismiss (instead of just
+  // acknowledging) lets the user immediately pick a different option.
+  const dismissDisqualifier = useCallback(() => {
+    if (!disqualifier) return;
+    const step = form.steps.find((s) => s.id === disqualifier.stepId);
+    if (!step) return;
+    const key = step.mapTo ?? step.id;
+    const current = answers[key];
+    // For multi_choice we strip only the offending value; for single
+    // selects we clear the whole answer.
+    if (Array.isArray(current)) {
+      const next = (current as string[]).filter(
+        (v) => v !== disqualifier.optionValue,
+      );
+      setAnswer(key, next.length > 0 ? next : null);
+    } else {
+      setAnswer(key, null);
+    }
+  }, [disqualifier, form.steps, answers, setAnswer]);
+
+  const { hostReady } = useDisqualifierBridge({
+    form,
+    embedded,
+    disqualifier,
+    onDismissFromParent: dismissDisqualifier,
+  });
+
   const onSubmit = useCallback(async () => {
     if (status === "submitting") return;
+    if (disqualifier) return;
     const valid = await runValidation();
     if (!valid) {
       // Scroll the first error into view so the user knows what to fix.
@@ -135,7 +226,7 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
       return;
     }
     await submit();
-  }, [runValidation, status, submit]);
+  }, [runValidation, status, submit, disqualifier]);
 
   // Input fields call `advance` on Enter / single_choice auto-advance.
   // In single_page mode that maps to "submit the whole form".
@@ -204,26 +295,53 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
         }}
       />
 
-      <main className="mx-auto w-full max-w-xl flex-1 px-6 py-10 md:py-12">
+      <main
+        className="mx-auto w-full flex-1"
+        style={{
+          maxWidth: sizes.formWidth,
+          minHeight: sizes.formMinHeight,
+          padding: form.theme?.removeFormPadding ? "0" : sizes.formPadding,
+        }}
+      >
         <div
           style={{
             background: "var(--form-card-bg)",
             borderRadius: "var(--form-card-radius)",
+            borderStyle: form.theme?.cardBorderWidth ? "solid" : undefined,
+            borderWidth: form.theme?.cardBorderWidth,
+            borderColor: form.theme?.cardBorderColor,
+            boxShadow: form.theme?.hideCardShadow
+              ? "none"
+              : form.theme?.cardShadow,
           }}
-          className="px-2 py-2 md:px-8 md:py-10"
         >
           <header
-            className={
-              titleAlign === "center"
-                ? "mb-6 space-y-2 text-center"
-                : "mb-6 space-y-2"
-            }
+            className={titleAlign === "center" ? "space-y-2 text-center" : "space-y-2"}
+            style={{ marginBottom: sizes.formPadding }}
           >
-            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+            <h1
+              style={{
+                fontSize: sizes.titleSize,
+                lineHeight: form.theme?.titleLineHeight ?? "1.2",
+                letterSpacing: form.theme?.titleLetterSpacing,
+                color: form.theme?.titleColor,
+                fontWeight: form.theme?.titleWeight ?? "600",
+                margin: 0,
+              }}
+            >
               {interpolate(form.title, answers)}
             </h1>
             {form.description ? (
-              <p className="text-sm leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]">
+              <p
+                style={{
+                  fontSize: sizes.descriptionSize,
+                  lineHeight: form.theme?.descriptionLineHeight ?? "1.6",
+                  color:
+                    form.theme?.descriptionColor ??
+                    "var(--form-muted-foreground,var(--muted-foreground))",
+                  margin: 0,
+                }}
+              >
                 {interpolate(form.description, answers)}
               </p>
             ) : null}
@@ -234,8 +352,8 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               e.preventDefault();
               void onSubmit();
             }}
-            className="space-y-4"
             noValidate
+            style={{ display: "flex", flexDirection: "column", gap: sizes.fieldGap }}
           >
             {inputSteps.map((step, index) => (
               <FieldRow
@@ -250,6 +368,11 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
                 error={errors[step.id] ?? null}
                 redirectUrl={form.redirectOnSuccess}
                 showLabels={showLabels}
+                labelTextSize={sizes.inputTextSize}
+                labelColor={form.theme?.labelColor}
+                labelWeight={form.theme?.labelWeight}
+                labelLineHeight={form.theme?.labelLineHeight}
+                errorColor={form.theme?.errorColor}
               />
             ))}
 
@@ -257,7 +380,11 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
               <p
                 role="alert"
                 data-spark-error
-                className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3"
+                style={{
+                  fontSize: sizes.inputTextSize,
+                  color: form.theme?.errorColor ?? "var(--destructive)",
+                }}
               >
                 {errorMessage}
               </p>
@@ -265,20 +392,51 @@ export function SinglePageRunner({ form, embedded = false }: Props) {
 
             <button
               type="submit"
-              disabled={status === "submitting"}
+              disabled={status === "submitting" || Boolean(disqualifier)}
               style={{
-                borderRadius: "var(--form-input-radius, 0.5rem)",
+                borderRadius:
+                  form.theme?.ctaRadius ?? "var(--form-input-radius, 0.5rem)",
+                marginTop: sizes.ctaGap,
+                height: sizes.ctaHeight,
+                fontSize: sizes.ctaTextSize,
+                fontWeight: form.theme?.ctaWeight ?? "500",
+                background:
+                  form.theme?.ctaBackground ??
+                  "var(--form-primary,var(--primary))",
+                color:
+                  form.theme?.ctaForeground ??
+                  "var(--form-primary-foreground,var(--primary-foreground))",
               }}
-              className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 bg-[var(--form-primary,var(--primary))] px-6 text-sm font-medium text-[var(--form-primary-foreground,var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 px-6 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === "submitting"
                 ? "Enviando…"
                 : (form.steps.find((s) => s.type === "thank_you")?.cta ??
                   "Enviar")}
             </button>
+
+            {form.lgpdNotice ? (
+              <p
+                className="whitespace-pre-line text-[var(--form-muted-foreground,var(--muted-foreground))]"
+                style={{
+                  fontSize: sizes.lgpdSize,
+                  lineHeight: "1.5",
+                  marginTop: "12px",
+                }}
+              >
+                {form.lgpdNotice}
+              </p>
+            ) : null}
           </form>
         </div>
       </main>
+
+      {disqualifier && !hostReady ? (
+        <DisqualifierModal
+          config={disqualifier.config}
+          onClose={dismissDisqualifier}
+        />
+      ) : null}
     </div>
   );
 }
@@ -318,6 +476,11 @@ interface FieldRowProps {
   error: string | null;
   redirectUrl?: string;
   showLabels?: boolean;
+  labelTextSize?: string;
+  labelColor?: string;
+  labelWeight?: string;
+  labelLineHeight?: string;
+  errorColor?: string;
 }
 
 function FieldRow({
@@ -331,6 +494,11 @@ function FieldRow({
   error,
   redirectUrl,
   showLabels = true,
+  labelTextSize,
+  labelColor,
+  labelWeight,
+  labelLineHeight,
+  errorColor,
 }: FieldRowProps) {
   if (step.type === "statement") {
     return (
@@ -363,11 +531,21 @@ function FieldRow({
         <div>
           <label
             htmlFor={`f-${step.id}`}
-            className="block text-sm font-medium leading-tight"
+            className="block"
+            style={{
+              fontSize: labelTextSize,
+              lineHeight: labelLineHeight ?? "1.3",
+              color: labelColor,
+              fontWeight: labelWeight ?? "500",
+            }}
           >
             {interpolate(step.title, answers)}
             {step.required ? (
-              <span className="ml-1 text-destructive" aria-hidden>
+              <span
+                className="ml-1"
+                style={{ color: errorColor ?? "var(--destructive)" }}
+                aria-hidden
+              >
                 *
               </span>
             ) : null}

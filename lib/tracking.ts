@@ -104,6 +104,33 @@ export function captureTracking(): TrackingData {
     if (v) fromQuery[key] = v;
   }
 
+  // When embedded via embed.js, the host script appends the parent's URL
+  // and referrer so we report the actual landing page, not the iframe.
+  // Reject "about:srcdoc" — that's what Framer / Webflow pass when their
+  // wrapper iframe couldn't resolve the real host page (e.g. embed.js
+  // ran with location.href === "about:srcdoc" inside a nested srcdoc).
+  function realUrl(v: string | null): string | null {
+    if (!v) return null;
+    if (/^about:/i.test(v)) return null;
+    return v;
+  }
+  const parentUrl = realUrl(params.get("_p"));
+  const parentReferrer = realUrl(params.get("_pr"));
+  // When the iframe is sitting inside any host page, document.referrer
+  // resolves to the parent URL (same-origin or cross-origin, modern
+  // browsers). Use it as a fallback when the host's embed.js is older
+  // than the version that passes _p explicitly.
+  const isIframed = window.parent !== window;
+  const iframeFallbackUrl = isIframed ? realUrl(document.referrer) : null;
+  const ownUrl = (() => {
+    // Strip the embed-only params from our own URL so a fallback to
+    // window.location doesn't leak them into the payload.
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete("_p");
+    clean.searchParams.delete("_pr");
+    return clean.toString();
+  })();
+
   // First-touch persistence (cross-session, cross-tab via localStorage)
   let firstTouchAt = safeGetLocal(STORAGE_KEYS.firstTouchAt);
   if (!firstTouchAt) {
@@ -128,9 +155,11 @@ export function captureTracking(): TrackingData {
 
   const snapshot: TrackingData = {
     ...fromQuery,
-    referrer: document.referrer || undefined,
-    landing_page: window.location.href,
-    page_url: window.location.href,
+    referrer:
+      parentReferrer ||
+      (isIframed ? undefined : document.referrer || undefined),
+    landing_page: parentUrl || iframeFallbackUrl || ownUrl,
+    page_url: parentUrl || iframeFallbackUrl || ownUrl,
     user_agent: ua,
     device: detectDevice(ua),
     language: navigator.language,

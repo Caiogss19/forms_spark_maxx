@@ -9,12 +9,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       ref={ref}
       type={type}
       style={{
+        height: "var(--form-input-height, 3rem)",
+        fontSize: "var(--form-input-text-size, 1rem)",
         borderRadius: "var(--form-input-radius, 0.5rem)",
         background: "var(--form-input-bg, transparent)",
+        borderWidth: "var(--form-input-border-width, 1px)",
         ...style,
       }}
       className={cn(
-        "flex h-12 w-full border px-4 py-2 text-base outline-none transition-colors",
+        "flex w-full border px-4 py-2 outline-none transition-colors",
         "border-[var(--form-input-border,var(--border))]",
         "placeholder:text-[var(--form-input-placeholder,var(--muted-foreground))]",
         "focus:border-[var(--form-input-focus-border,var(--foreground))]",

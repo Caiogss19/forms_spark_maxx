@@ -4,9 +4,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+
 import { resolveNextStep } from "@/lib/branching";
 import { interpolate } from "@/lib/interpolate";
 import {
+  findActiveDisqualifier,
   resolveTheme,
   type FormDefinition,
   type Step,
@@ -15,10 +17,12 @@ import { findStep, useFormStore, type AnswerValue } from "@/lib/store";
 import { useFormSubmit } from "@/lib/use-form-submit";
 import { useTrackingCapture } from "@/lib/use-tracking-capture";
 
+import { DisqualifierModal } from "./DisqualifierModal";
 import { KeyboardHints } from "./KeyboardHints";
 import { ProgressBar } from "./ProgressBar";
 import { StepRenderer } from "./StepRenderer";
 import { StepShell } from "./StepShell";
+import { useDisqualifierBridge } from "./useDisqualifierBridge";
 
 interface Props {
   form: FormDefinition;
@@ -79,6 +83,24 @@ export function FormRunner({ form, embedded = false }: Props) {
       }
       if (form.redirectOnSuccess) {
         setTimeout(() => {
+          if (embedded && typeof window !== "undefined") {
+            window.parent?.postMessage(
+              {
+                type: "spark-forms:redirect",
+                url: form.redirectOnSuccess,
+                slug: form.slug,
+              },
+              "*",
+            );
+            try {
+              if (window.top && window.top !== window) {
+                window.top.location.href = form.redirectOnSuccess!;
+                return;
+              }
+            } catch {
+              /* sandboxed: parent handles via postMessage */
+            }
+          }
           window.location.href = form.redirectOnSuccess!;
         }, 1500);
       }
@@ -86,6 +108,36 @@ export function FormRunner({ form, embedded = false }: Props) {
   });
 
   const step = findStep(form.steps, currentStepId);
+
+  const disqualifier = useMemo(
+    () => findActiveDisqualifier(form, answers),
+    [form, answers],
+  );
+
+  // Clearing the disqualifying answer on dismiss lets the user pick a
+  // different option immediately — they don't have to manually unselect.
+  const dismissDisqualifier = useCallback(() => {
+    if (!disqualifier) return;
+    const step = form.steps.find((s) => s.id === disqualifier.stepId);
+    if (!step) return;
+    const key = step.mapTo ?? step.id;
+    const current = answers[key];
+    if (Array.isArray(current)) {
+      const next = (current as string[]).filter(
+        (v) => v !== disqualifier.optionValue,
+      );
+      setAnswer(key, next.length > 0 ? next : null);
+    } else {
+      setAnswer(key, null);
+    }
+  }, [disqualifier, form.steps, answers, setAnswer]);
+
+  const { hostReady } = useDisqualifierBridge({
+    form,
+    embedded,
+    disqualifier,
+    onDismissFromParent: dismissDisqualifier,
+  });
 
   /**
    * Intercepts advance BEFORE the linear next-step jump. Returns false to
@@ -95,6 +147,9 @@ export function FormRunner({ form, embedded = false }: Props) {
   const onBeforeAdvance = useCallback(async (): Promise<boolean> => {
     const state = useFormStore.getState();
     if (!state.currentStepId) return true;
+    // Hard-block when a disqualifying option is selected anywhere in the
+    // form. The modal already explains why; we just refuse to advance.
+    if (form && findActiveDisqualifier(form, state.answers)) return false;
     const nextId = resolveNextStep({
       currentStepId: state.currentStepId,
       steps: state.steps,
@@ -105,7 +160,7 @@ export function FormRunner({ form, embedded = false }: Props) {
     if (!shouldSubmit) return true;
     const result = await submit();
     return result.ok;
-  }, [submit]);
+  }, [submit, form]);
 
   const themeVars = useMemo(() => {
     const t = resolveTheme(form.theme);
@@ -194,11 +249,27 @@ export function FormRunner({ form, embedded = false }: Props) {
                 onBeforeAdvance={onBeforeAdvance}
                 history={history}
                 status={status}
+                blocked={Boolean(disqualifier)}
               />
             </motion.div>
           </AnimatePresence>
         )}
       </main>
+
+      {form.lgpdNotice && step?.type !== "thank_you" ? (
+        <footer className="mx-auto w-full max-w-2xl px-6 pb-6">
+          <p className="whitespace-pre-line text-[11px] leading-relaxed text-[var(--form-muted-foreground,var(--muted-foreground))]">
+            {form.lgpdNotice}
+          </p>
+        </footer>
+      ) : null}
+
+      {disqualifier && !hostReady ? (
+        <DisqualifierModal
+          config={disqualifier.config}
+          onClose={dismissDisqualifier}
+        />
+      ) : null}
     </div>
   );
 }
@@ -217,6 +288,7 @@ interface StepViewProps {
   onBeforeAdvance: () => Promise<boolean>;
   history: string[];
   status: string;
+  blocked: boolean;
 }
 
 function StepView({
@@ -229,6 +301,7 @@ function StepView({
   onBeforeAdvance,
   history,
   status,
+  blocked,
 }: StepViewProps) {
   const [error, setError] = useState<string | null>(null);
   const submitHandlerRef = useRef<
@@ -334,8 +407,8 @@ function StepView({
             <KeyboardHints
               ctaLabel={isSubmitting ? "Enviando…" : ctaLabel}
               onAdvance={() => void advance()}
-              ctaDisabled={isSubmitting}
-              hideEnterHint={isSubmitting}
+              ctaDisabled={isSubmitting || blocked}
+              hideEnterHint={isSubmitting || blocked}
             />
           ) : null}
         </div>

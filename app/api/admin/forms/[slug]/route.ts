@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { isAdmin } from "@/lib/admin-auth";
 import { FormSchema } from "@/lib/schema";
 import {
   deleteFormRow,
@@ -21,9 +20,6 @@ interface RouteParams {
 }
 
 export async function PUT(req: Request, { params }: RouteParams) {
-  if (!(await isAdmin())) {
-    return Response.json({ ok: false, message: "Não autorizado." }, { status: 401 });
-  }
   if (!isSupabaseConfigured()) {
     return Response.json(
       { ok: false, message: "Supabase não configurado (SUPABASE_URL + SUPABASE_SERVICE_KEY)." },
@@ -47,7 +43,6 @@ export async function PUT(req: Request, { params }: RouteParams) {
     return Response.json({ ok: false, message: "Body inválido." }, { status: 400 });
   }
 
-  // Validate the schema against FormSchema before persisting.
   const schemaCheck = FormSchema.safeParse(parsed.data.schema);
   if (!schemaCheck.success) {
     return Response.json(
@@ -80,9 +75,6 @@ export async function PUT(req: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_req: Request, { params }: RouteParams) {
-  if (!(await isAdmin())) {
-    return Response.json({ ok: false, message: "Não autorizado." }, { status: 401 });
-  }
   if (!isSupabaseConfigured()) {
     return Response.json(
       { ok: false, message: "Supabase não configurado." },

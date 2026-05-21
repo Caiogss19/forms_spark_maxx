@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowUp,
   Code2,
-  Copy,
   Plus,
   Trash2,
   X,
@@ -13,11 +12,14 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+import { EmbedButton } from "@/components/admin/EmbedButton";
+import { FormPreview } from "@/components/admin/FormPreview";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   FIELD_TYPES,
   FormSchema,
+  SIZE_DEFAULTS,
   type FormDefinition,
   type Step,
   type StepOption,
@@ -28,12 +30,19 @@ interface Props {
   initialForm: FormDefinition;
 }
 
+const WEIGHT_OPTIONS = [
+  { value: "300", label: "Light (300)" },
+  { value: "400", label: "Regular (400)" },
+  { value: "500", label: "Medium (500)" },
+  { value: "600", label: "Semibold (600)" },
+  { value: "700", label: "Bold (700)" },
+];
+
 export function FormEditor({ initialForm }: Props) {
   const [form, setForm] = useState<FormDefinition>(initialForm);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [embedOpen, setEmbedOpen] = useState(false);
   const [jsonOpen, setJsonOpen] = useState(false);
 
   function patch(partial: Partial<FormDefinition>) {
@@ -118,7 +127,7 @@ export function FormEditor({ initialForm }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-6 py-3">
           <Link
             href="/admin"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -139,13 +148,7 @@ export function FormEditor({ initialForm }: Props) {
             >
               <Code2 className="h-3.5 w-3.5" /> JSON
             </button>
-            <button
-              type="button"
-              onClick={() => setEmbedOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              <Code2 className="h-3.5 w-3.5" /> Embed
-            </button>
+            <EmbedButton slug={form.slug} />
             <button
               type="button"
               onClick={save}
@@ -163,7 +166,8 @@ export function FormEditor({ initialForm }: Props) {
         ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-4xl space-y-6 px-6 py-8">
+      <main className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="space-y-6">
         {/* Metadata */}
         <section className="rounded-2xl border border-border p-5">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -247,6 +251,34 @@ export function FormEditor({ initialForm }: Props) {
                 value={form.redirectOnSuccess ?? ""}
                 onChange={(e) =>
                   patch({ redirectOnSuccess: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Webhook URL (sobrescreve N8N_WEBHOOK_URL pra esse form)" full>
+              <Input
+                placeholder="https://… (deixe vazio pra usar o webhook padrão do projeto)"
+                value={form.webhookUrl ?? ""}
+                onChange={(e) =>
+                  patch({ webhookUrl: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Webhook Authorization header (opcional)" full>
+              <Input
+                placeholder="Ex.: Bearer abc123 (deixe vazio pra usar N8N_WEBHOOK_AUTH)"
+                value={form.webhookAuth ?? ""}
+                onChange={(e) =>
+                  patch({ webhookAuth: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Aviso de LGPD / uso de dados (opcional)" full>
+              <Textarea
+                rows={3}
+                placeholder="Ex.: Ao enviar, você concorda com nossa Política de Privacidade. Os dados serão usados apenas para contato comercial."
+                value={form.lgpdNotice ?? ""}
+                onChange={(e) =>
+                  patch({ lgpdNotice: e.target.value || undefined })
                 }
               />
             </Field>
@@ -345,6 +377,327 @@ export function FormEditor({ initialForm }: Props) {
           </div>
         </section>
 
+        {/* Structure / chrome toggles */}
+        <section className="rounded-2xl border border-border p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Estrutura e fundo
+          </h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Pra embedar no Framer/Webflow, deixe os fundos transparentes pra
+            o form herdar a aparência da página pai.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <CheckboxField
+              label="Fundo do form transparente"
+              checked={Boolean(form.theme?.transparentBackground)}
+              onChange={(v) =>
+                patchTheme({ transparentBackground: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Fundo do card interno transparente"
+              checked={Boolean(form.theme?.transparentCard)}
+              onChange={(v) =>
+                patchTheme({ transparentCard: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Remover bordas dos inputs"
+              checked={Boolean(form.theme?.hideInputBorder)}
+              onChange={(v) =>
+                patchTheme({ hideInputBorder: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Remover sombra do card"
+              checked={Boolean(form.theme?.hideCardShadow)}
+              onChange={(v) =>
+                patchTheme({ hideCardShadow: v || undefined })
+              }
+            />
+            <CheckboxField
+              label="Remover padding do form (cola nas bordas)"
+              checked={Boolean(form.theme?.removeFormPadding)}
+              onChange={(v) =>
+                patchTheme({ removeFormPadding: v || undefined })
+              }
+            />
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <ColorField
+              label="Cor da borda do card"
+              value={form.theme?.cardBorderColor ?? ""}
+              onChange={(v) =>
+                patchTheme({ cardBorderColor: v || undefined })
+              }
+            />
+            <Field label="Largura da borda do card (CSS)">
+              <Input
+                placeholder="ex.: 1px / 2px / 0"
+                value={form.theme?.cardBorderWidth ?? ""}
+                onChange={(e) =>
+                  patchTheme({ cardBorderWidth: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Largura da borda dos inputs (CSS)">
+              <Input
+                placeholder="default: 1px"
+                value={form.theme?.inputBorderWidth ?? ""}
+                onChange={(e) =>
+                  patchTheme({ inputBorderWidth: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Sombra do card (CSS box-shadow)">
+              <Input
+                placeholder="ex.: 0 4px 24px rgba(0,0,0,0.08)"
+                value={form.theme?.cardShadow ?? ""}
+                onChange={(e) =>
+                  patchTheme({ cardShadow: e.target.value || undefined })
+                }
+              />
+            </Field>
+          </div>
+        </section>
+
+        {/* Per-element colors and typography weights */}
+        <section className="rounded-2xl border border-border p-5">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Cores e tipografia por elemento
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <ColorField
+              label="Cor do título"
+              value={form.theme?.titleColor ?? ""}
+              onChange={(v) => patchTheme({ titleColor: v || undefined })}
+            />
+            <ColorField
+              label="Cor da descrição"
+              value={form.theme?.descriptionColor ?? ""}
+              onChange={(v) =>
+                patchTheme({ descriptionColor: v || undefined })
+              }
+            />
+            <ColorField
+              label="Cor das labels"
+              value={form.theme?.labelColor ?? ""}
+              onChange={(v) => patchTheme({ labelColor: v || undefined })}
+            />
+            <ColorField
+              label="Cor de erro / asterisco obrigatório"
+              value={form.theme?.errorColor ?? ""}
+              onChange={(v) => patchTheme({ errorColor: v || undefined })}
+            />
+            <Field label="Peso da fonte do título">
+              <Select
+                value={form.theme?.titleWeight ?? "600"}
+                onChange={(v) => patchTheme({ titleWeight: v })}
+                options={WEIGHT_OPTIONS}
+              />
+            </Field>
+            <Field label="Peso da fonte das labels">
+              <Select
+                value={form.theme?.labelWeight ?? "500"}
+                onChange={(v) => patchTheme({ labelWeight: v })}
+                options={WEIGHT_OPTIONS}
+              />
+            </Field>
+            <Field label="Peso da fonte do CTA">
+              <Select
+                value={form.theme?.ctaWeight ?? "500"}
+                onChange={(v) => patchTheme({ ctaWeight: v })}
+                options={WEIGHT_OPTIONS}
+              />
+            </Field>
+            <Field label="Line-height do título (CSS)">
+              <Input
+                placeholder="default: 1.2"
+                value={form.theme?.titleLineHeight ?? ""}
+                onChange={(e) =>
+                  patchTheme({ titleLineHeight: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Line-height da descrição (CSS)">
+              <Input
+                placeholder="default: 1.6"
+                value={form.theme?.descriptionLineHeight ?? ""}
+                onChange={(e) =>
+                  patchTheme({
+                    descriptionLineHeight: e.target.value || undefined,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Line-height das labels (CSS)">
+              <Input
+                placeholder="default: 1.3"
+                value={form.theme?.labelLineHeight ?? ""}
+                onChange={(e) =>
+                  patchTheme({ labelLineHeight: e.target.value || undefined })
+                }
+              />
+            </Field>
+            <Field label="Letter-spacing do título (CSS)">
+              <Input
+                placeholder="ex.: -0.01em / 0 / 0.05em"
+                value={form.theme?.titleLetterSpacing ?? ""}
+                onChange={(e) =>
+                  patchTheme({
+                    titleLetterSpacing: e.target.value || undefined,
+                  })
+                }
+              />
+            </Field>
+          </div>
+        </section>
+
+        {/* CTA-specific overrides */}
+        <section className="rounded-2xl border border-border p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Botão CTA (Enviar)
+          </h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Por padrão usa as cores de &quot;Botão primário&quot;. Aqui você
+            sobrescreve só pro CTA.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <ColorField
+              label="Fundo do CTA"
+              value={form.theme?.ctaBackground ?? ""}
+              onChange={(v) =>
+                patchTheme({ ctaBackground: v || undefined })
+              }
+            />
+            <ColorField
+              label="Cor do texto do CTA"
+              value={form.theme?.ctaForeground ?? ""}
+              onChange={(v) =>
+                patchTheme({ ctaForeground: v || undefined })
+              }
+            />
+            <Field label="Raio do CTA (CSS)">
+              <Input
+                placeholder="ex.: 9999px / 0.5rem / 0"
+                value={form.theme?.ctaRadius ?? ""}
+                onChange={(e) =>
+                  patchTheme({ ctaRadius: e.target.value || undefined })
+                }
+              />
+            </Field>
+          </div>
+        </section>
+
+        {/* Sizes (single_page layout) */}
+        <section className="rounded-2xl border border-border p-5">
+          <div className="mb-1 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Dimensões e tipografia (single page)
+            </h2>
+            <button
+              type="button"
+              onClick={() =>
+                patchTheme({
+                  formWidth: undefined,
+                  formMinHeight: undefined,
+                  formPadding: undefined,
+                  titleSize: undefined,
+                  descriptionSize: undefined,
+                  inputHeight: undefined,
+                  inputTextSize: undefined,
+                  fieldGap: undefined,
+                  ctaGap: undefined,
+                  ctaHeight: undefined,
+                  ctaTextSize: undefined,
+                  lgpdSize: undefined,
+                })
+              }
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Resetar pros defaults
+            </button>
+          </div>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Aceita qualquer unidade CSS (px, rem, em, %). Deixe vazio pra
+            usar o default. Aplica-se ao layout <code>single_page</code>.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SizeField
+              label="Largura do form"
+              placeholder={SIZE_DEFAULTS.formWidth}
+              value={form.theme?.formWidth}
+              onChange={(v) => patchTheme({ formWidth: v })}
+            />
+            <SizeField
+              label="Altura mínima do form"
+              placeholder={SIZE_DEFAULTS.formMinHeight}
+              value={form.theme?.formMinHeight}
+              onChange={(v) => patchTheme({ formMinHeight: v })}
+            />
+            <SizeField
+              label="Padding interno do form"
+              placeholder={SIZE_DEFAULTS.formPadding}
+              value={form.theme?.formPadding}
+              onChange={(v) => patchTheme({ formPadding: v })}
+            />
+            <SizeField
+              label="Tamanho do título"
+              placeholder={SIZE_DEFAULTS.titleSize}
+              value={form.theme?.titleSize}
+              onChange={(v) => patchTheme({ titleSize: v })}
+            />
+            <SizeField
+              label="Tamanho da descrição"
+              placeholder={SIZE_DEFAULTS.descriptionSize}
+              value={form.theme?.descriptionSize}
+              onChange={(v) => patchTheme({ descriptionSize: v })}
+            />
+            <SizeField
+              label="Altura dos campos / labels"
+              placeholder={SIZE_DEFAULTS.inputHeight}
+              value={form.theme?.inputHeight}
+              onChange={(v) => patchTheme({ inputHeight: v })}
+            />
+            <SizeField
+              label="Tamanho do texto dos campos"
+              placeholder={SIZE_DEFAULTS.inputTextSize}
+              value={form.theme?.inputTextSize}
+              onChange={(v) => patchTheme({ inputTextSize: v })}
+            />
+            <SizeField
+              label="Espaçamento entre campos"
+              placeholder={SIZE_DEFAULTS.fieldGap}
+              value={form.theme?.fieldGap}
+              onChange={(v) => patchTheme({ fieldGap: v })}
+            />
+            <SizeField
+              label="Espaçamento antes do CTA"
+              placeholder={SIZE_DEFAULTS.ctaGap}
+              value={form.theme?.ctaGap}
+              onChange={(v) => patchTheme({ ctaGap: v })}
+            />
+            <SizeField
+              label="Altura do botão CTA"
+              placeholder={SIZE_DEFAULTS.ctaHeight}
+              value={form.theme?.ctaHeight}
+              onChange={(v) => patchTheme({ ctaHeight: v })}
+            />
+            <SizeField
+              label="Tamanho do texto do CTA"
+              placeholder={SIZE_DEFAULTS.ctaTextSize}
+              value={form.theme?.ctaTextSize}
+              onChange={(v) => patchTheme({ ctaTextSize: v })}
+            />
+            <SizeField
+              label="Tamanho do aviso LGPD"
+              placeholder={SIZE_DEFAULTS.lgpdSize}
+              value={form.theme?.lgpdSize}
+              onChange={(v) => patchTheme({ lgpdSize: v })}
+            />
+          </div>
+        </section>
+
         {/* Steps */}
         <section className="rounded-2xl border border-border p-5">
           <div className="mb-4 flex items-center justify-between">
@@ -374,11 +727,27 @@ export function FormEditor({ initialForm }: Props) {
             ))}
           </ul>
         </section>
+        </div>
+
+        {/* Live preview — sticky on lg+, stacks below on mobile */}
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Preview ao vivo
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              layout {form.layout ?? "stepped"}
+            </span>
+          </div>
+          <FormPreview form={form} />
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Preview reflete o layout <code>single_page</code> com as cores e
+            dimensões atuais. Mudanças aparecem instantaneamente — salvar pra
+            publicar.
+          </p>
+        </aside>
       </main>
 
-      {embedOpen ? (
-        <EmbedModal slug={form.slug} onClose={() => setEmbedOpen(false)} />
-      ) : null}
       {jsonOpen ? (
         <JsonModal
           value={JSON.stringify(form, null, 2)}
@@ -423,6 +792,80 @@ function Field({
   );
 }
 
+const DIMENSION_UNITS = ["px", "rem", "em", "%", "vh", "vw"] as const;
+type DimensionUnit = (typeof DIMENSION_UNITS)[number];
+
+function parseDimension(
+  v: string | undefined,
+): { number: string; unit: DimensionUnit } | null {
+  if (!v) return null;
+  const m = v.trim().match(/^(-?\d*\.?\d+)\s*([a-z%]+)?$/i);
+  if (!m) return null;
+  const rawUnit = (m[2] || "px").toLowerCase() as DimensionUnit;
+  const unit = (DIMENSION_UNITS as readonly string[]).includes(rawUnit)
+    ? rawUnit
+    : "px";
+  return { number: m[1], unit };
+}
+
+function SizeField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (v: string | undefined) => void;
+  placeholder: string;
+}) {
+  const parsedDefault = parseDimension(placeholder);
+  const parsed = parseDimension(value);
+  const num = parsed?.number ?? "";
+  const unit: DimensionUnit =
+    parsed?.unit ?? parsedDefault?.unit ?? "px";
+
+  function commit(nextNum: string, nextUnit: DimensionUnit) {
+    if (nextNum === "") {
+      onChange(undefined);
+      return;
+    }
+    if (!/^-?\d*\.?\d+$/.test(nextNum)) return;
+    onChange(`${nextNum}${nextUnit}`);
+  }
+
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <div className="flex gap-2">
+        <Input
+          type="number"
+          step="any"
+          value={num}
+          placeholder={parsedDefault?.number ?? ""}
+          onChange={(e) => commit(e.target.value, unit)}
+          className="flex-1"
+        />
+        <select
+          value={unit}
+          onChange={(e) => commit(num || "0", e.target.value as DimensionUnit)}
+          style={{ height: "var(--form-input-height, 3rem)" }}
+          className="rounded-lg border border-border bg-transparent px-2 text-xs"
+        >
+          {DIMENSION_UNITS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+      </div>
+      <span className="block text-[10px] text-muted-foreground">
+        Default: <code>{placeholder}</code>
+      </span>
+    </label>
+  );
+}
+
 function ColorField({
   label,
   value,
@@ -432,23 +875,34 @@ function ColorField({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const valid = /^#([0-9a-f]{3,8})$/i.test(value);
+  const hexValid = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(value);
+  // <input type=color> only accepts 6-digit hex. If user typed rgba()
+  // we still show the text input but disable the swatch picker.
   return (
     <label className="block space-y-1.5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className="flex gap-2">
         <Input
           value={value}
-          placeholder="#000000 ou rgba(…)"
+          placeholder="#000000, rgba(…), transparent"
           onChange={(e) => onChange(e.target.value)}
         />
-        {valid ? (
-          <span
-            className="h-12 w-12 shrink-0 rounded-lg border border-border"
-            style={{ background: value }}
-            aria-hidden
+        <label
+          className="relative inline-flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-border"
+          style={{ background: hexValid ? value : "transparent" }}
+          title={hexValid ? "Mudar cor" : "Cole um valor #RRGGBB pra usar o picker"}
+        >
+          {!hexValid ? (
+            <span className="text-[10px] text-muted-foreground">cole hex</span>
+          ) : null}
+          <input
+            type="color"
+            value={hexValid ? value.slice(0, 7) : "#000000"}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            aria-label={`Selecionar ${label}`}
           />
-        ) : null}
+        </label>
       </div>
     </label>
   );
@@ -644,30 +1098,41 @@ function OptionsEditor({
       <span className="text-xs font-medium text-muted-foreground">
         Opções ({options.length})
       </span>
-      <ul className="mt-1.5 space-y-1.5">
+      <ul className="mt-1.5 space-y-3">
         {options.map((opt, i) => (
-          <li key={i} className="flex items-center gap-2">
-            <Input
-              value={opt.value}
-              onChange={(e) => update(i, { value: e.target.value })}
-              placeholder="value"
-              className="h-9 max-w-[150px] text-xs"
+          <li
+            key={i}
+            className="space-y-2 rounded-lg border border-border/60 bg-background/40 p-2"
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                value={opt.value}
+                onChange={(e) => update(i, { value: e.target.value })}
+                placeholder="value"
+                className="h-9 max-w-[150px] text-xs"
+              />
+              <Input
+                value={opt.label}
+                onChange={(e) => update(i, { label: e.target.value })}
+                placeholder="Label visível"
+                className="h-9 flex-1 text-sm"
+              />
+              <Input
+                value={opt.emoji ?? ""}
+                onChange={(e) =>
+                  update(i, { emoji: e.target.value || undefined })
+                }
+                placeholder="🚀"
+                className="h-9 w-14 text-center text-xs"
+              />
+              <IconBtn onClick={() => remove(i)} title="Remover" destructive>
+                <Trash2 className="h-3.5 w-3.5" />
+              </IconBtn>
+            </div>
+            <DisqualifierEditor
+              value={opt.disqualify}
+              onChange={(d) => update(i, { disqualify: d })}
             />
-            <Input
-              value={opt.label}
-              onChange={(e) => update(i, { label: e.target.value })}
-              placeholder="Label visível"
-              className="h-9 flex-1 text-sm"
-            />
-            <Input
-              value={opt.emoji ?? ""}
-              onChange={(e) => update(i, { emoji: e.target.value || undefined })}
-              placeholder="🚀"
-              className="h-9 w-14 text-center text-xs"
-            />
-            <IconBtn onClick={() => remove(i)} title="Remover" destructive>
-              <Trash2 className="h-3.5 w-3.5" />
-            </IconBtn>
           </li>
         ))}
       </ul>
@@ -678,6 +1143,86 @@ function OptionsEditor({
       >
         <Plus className="h-3 w-3" /> Adicionar opção
       </button>
+    </div>
+  );
+}
+
+function DisqualifierEditor({
+  value,
+  onChange,
+}: {
+  value: StepOption["disqualify"];
+  onChange: (v: StepOption["disqualify"]) => void;
+}) {
+  const enabled = Boolean(value);
+
+  function toggle(on: boolean) {
+    if (on) {
+      onChange({
+        title: value?.title ?? "Não foi dessa vez",
+        message:
+          value?.message ??
+          "Esse formulário não é pra esse perfil. Mas a gente tem outros caminhos pra você.",
+        ctaLabel: value?.ctaLabel ?? "",
+        ctaUrl: value?.ctaUrl ?? "",
+      });
+    } else {
+      onChange(undefined);
+    }
+  }
+
+  function patch(p: Partial<NonNullable<StepOption["disqualify"]>>) {
+    if (!value) return;
+    onChange({ ...value, ...p });
+  }
+
+  return (
+    <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-2">
+      <label className="flex cursor-pointer items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => toggle(e.target.checked)}
+          className="h-3.5 w-3.5"
+        />
+        <span className="font-medium">Bloquear quando essa opção for selecionada</span>
+        <span className="text-muted-foreground">
+          (popup impede de avançar)
+        </span>
+      </label>
+      {enabled ? (
+        <div className="mt-3 grid gap-2">
+          <Input
+            placeholder="Título do popup (ex.: Não foi dessa vez)"
+            value={value?.title ?? ""}
+            onChange={(e) => patch({ title: e.target.value || undefined })}
+            className="h-9 text-sm"
+          />
+          <Textarea
+            placeholder="Mensagem que o usuário vai ver no popup"
+            rows={3}
+            value={value?.message ?? ""}
+            onChange={(e) => patch({ message: e.target.value })}
+            className="text-sm"
+          />
+          <div className="grid gap-2 md:grid-cols-2">
+            <Input
+              placeholder="Texto do botão CTA (opcional)"
+              value={value?.ctaLabel ?? ""}
+              onChange={(e) =>
+                patch({ ctaLabel: e.target.value || undefined })
+              }
+              className="h-9 text-xs"
+            />
+            <Input
+              placeholder="Link do CTA (https://… opcional)"
+              value={value?.ctaUrl ?? ""}
+              onChange={(e) => patch({ ctaUrl: e.target.value || undefined })}
+              className="h-9 text-xs"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -710,46 +1255,6 @@ function IconBtn({
     >
       {children}
     </button>
-  );
-}
-
-function EmbedModal({
-  slug,
-  onClose,
-}: {
-  slug: string;
-  onClose: () => void;
-}) {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://forms.spark.com.br";
-
-  const snippet = `<div data-spark-form="${slug}" data-spark-min-height="640px"></div>
-<script async src="${origin}/embed.js"></script>`;
-
-  const iframe = `<iframe
-  src="${origin}/embed/${slug}"
-  style="width:100%;height:640px;border:0;display:block;"
-  loading="lazy"
-  title="Spark Forms"></iframe>`;
-
-  return (
-    <ModalShell onClose={onClose} title="Embedar no Framer">
-      <CopyBlock
-        title="Snippet (recomendado)"
-        hint="Auto-resize, encaminha UTMs/cookies da página pai, dispara spark:submission."
-        code={snippet}
-      />
-      <CopyBlock
-        title="iframe puro"
-        hint="Mais simples, mas altura fixa em 640px e sem forward de tracking."
-        code={iframe}
-      />
-      <p className="text-xs text-muted-foreground">
-        No Framer: <strong>Insert → Embed → Type: HTML</strong> e cole.
-      </p>
-    </ModalShell>
   );
 }
 
@@ -789,56 +1294,6 @@ function JsonModal({
         </button>
       </div>
     </ModalShell>
-  );
-}
-
-function CopyBlock({
-  title,
-  code,
-  hint,
-}: {
-  title: string;
-  code: string;
-  hint?: string;
-}) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // fallback
-      const ta = document.createElement("textarea");
-      ta.value = code;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }
-  }
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </p>
-        <button
-          type="button"
-          onClick={copy}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium transition-colors hover:bg-muted"
-        >
-          <Copy className="h-3 w-3" />
-          {copied ? "Copiado!" : "Copiar"}
-        </button>
-      </div>
-      <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-xs leading-relaxed">
-        <code>{code}</code>
-      </pre>
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
-    </div>
   );
 }
 
