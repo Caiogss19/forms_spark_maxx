@@ -49,8 +49,7 @@
       "ctaLabel": "Agendar com o Raí",
       "prefill": {
         "name": "Nome",
-        "email": "E_mail_corporativo",
-        "a1": "Empresa"
+        "email": "E_mail_corporativo"
       },
       "display": "inline",
       "confirmation": "Agendado! ✳ O convite com o link do Teams chega no seu e-mail. Até lá!",
