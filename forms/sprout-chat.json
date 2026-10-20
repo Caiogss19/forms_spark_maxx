@@ -39,22 +39,18 @@
     "botSubtitle": "Sprout Social",
     "greeting": [
       "Oi! Aqui é a Spark Maxx.",
-      "Vou te fazer umas perguntas rápidas pra entender o seu momento com marketing de influência. No final, você já agenda uma conversa com a Raí, do nosso time."
+      "Vou te fazer umas perguntas rápidas pra entender o seu momento com marketing de influência. No final, você já agenda uma conversa com o Raí, nosso especialista em influência."
     ],
     "submitAfter": "frequencia",
     "pageUrlFallback": "https://sparkmaxx.com.br/plataforma-sprout-social-influencer-marketing",
     "scheduling": {
       "url": "https://calendly.com/rai-tavares-spark/new-meeting",
-      "message": "Perfeito, {{Nome}}! Está tudo anotado.\nAgora é só escolher aqui embaixo o melhor horário pra conversar com a Raí: são 15 minutos pelo Teams, e as suas respostas já vão preenchidas.",
-      "ctaLabel": "Agendar com a Raí",
+      "message": "Perfeito, {{Nome}}! Está tudo anotado.\nAgora é só escolher aqui embaixo o melhor horário pra conversar com o Raí: são 15 minutos pelo Teams.",
+      "ctaLabel": "Agendar com o Raí",
       "prefill": {
         "name": "Nome",
         "email": "E_mail_corporativo",
-        "a1": "Empresa",
-        "a2": "calendly_gestao_campanhas",
-        "a3": "calendly_equipe_dedicada",
-        "a4": "calendly_quem_toca",
-        "a5": "calendly_detalhes"
+        "a1": "Empresa"
       },
       "display": "inline",
       "confirmation": "Agendado! ✳ O convite com o link do Teams chega no seu e-mail. Até lá!",
@@ -64,7 +60,9 @@
         "primary": "1f2c41"
       }
     },
-    "avatarUrl": "/brand/spark-avatar-navy.png"
+    "avatarUrl": "/brand/spark-avatar-navy.png",
+    "progressColor": "#22C55E",
+    "progressTrack": "#DCFCE7"
   },
   "steps": [
     {
@@ -178,85 +176,6 @@
           "label": "Ainda não faço"
         }
       ]
-    },
-    {
-      "id": "gestao_campanhas",
-      "type": "single_choice",
-      "title": "Agora umas perguntas pra Raí já chegar preparada na conversa. Hoje vocês gerenciam campanhas com influenciadores de forma manual ou usam alguma plataforma?",
-      "required": true,
-      "mapTo": "calendly_gestao_campanhas",
-      "options": [
-        {
-          "value": "Manual",
-          "label": "Manual"
-        },
-        {
-          "value": "Planilhas",
-          "label": "Planilhas"
-        },
-        {
-          "value": "Uso uma plataforma",
-          "label": "Uso uma plataforma"
-        },
-        {
-          "value": "Ainda não faço campanhas",
-          "label": "Ainda não faço campanhas"
-        }
-      ]
-    },
-    {
-      "id": "equipe_dedicada",
-      "type": "single_choice",
-      "title": "A empresa tem uma pessoa ou equipe dedicada ao marketing de influência?",
-      "required": true,
-      "mapTo": "calendly_equipe_dedicada",
-      "options": [
-        {
-          "value": "Sim",
-          "label": "Sim"
-        },
-        {
-          "value": "Não",
-          "label": "Não"
-        },
-        {
-          "value": "Parcialmente",
-          "label": "Parcialmente"
-        }
-      ]
-    },
-    {
-      "id": "quem_toca",
-      "type": "single_choice",
-      "title": "A ideia é a sua equipe tocar as campanhas ou a Spark tocar para vocês?",
-      "required": true,
-      "mapTo": "calendly_quem_toca",
-      "options": [
-        {
-          "value": "Minha equipe",
-          "label": "Minha equipe"
-        },
-        {
-          "value": "Spark",
-          "label": "Spark"
-        },
-        {
-          "value": "Ainda avaliando",
-          "label": "Ainda avaliando"
-        }
-      ]
-    },
-    {
-      "id": "detalhes",
-      "type": "long_text",
-      "title": "Se quiser, conta um pouco mais do que você está buscando.",
-      "placeholder": "Opcional",
-      "required": false,
-      "skipLabel": "Pular",
-      "validation": {
-        "max": 1000
-      },
-      "mapTo": "calendly_detalhes"
     }
   ]
 }
