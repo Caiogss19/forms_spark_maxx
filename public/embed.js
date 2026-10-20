@@ -443,23 +443,33 @@
 
   // ─── Launcher (floating chat button) ──────────────────────────────
   // <script src=".../embed.js" data-spark-launcher="sprout-chat"> adds a
-  // round button at the corner of the page that opens the form in a
-  // floating panel (full screen on phones). The iframe loads on the
-  // first open and stays mounted, so closing never loses the chat.
-  // Any link to #spark-chat (or element with data-spark-open) opens it.
-  // Needs to run on the page itself (Framer: Custom Code, end of body):
-  // inside an Embed block the button would be trapped in the block.
+  // round button at the corner of every page that opens the form in a
+  // floating panel (full screen on phones). Paste it once in the site's
+  // Custom Code (end of body) — inside an Embed block the button would be
+  // trapped in the block.
+  //
+  // - Built when the browser is idle, so it never competes with the page.
+  // - The chat iframe warms up on hover/touch and loads for real on the
+  //   first open; it stays mounted, so closing or navigating (Framer is a
+  //   SPA) never loses the conversation.
+  // - Stacks above a floating WhatsApp button (or [data-spark-avoid])
+  //   sitting in the same corner, page by page.
+  // - data-spark-launcher-pages / -exclude: comma-separated paths, `*`
+  //   as wildcard ("/blog*,/obrigado"). Re-evaluated on every navigation.
+  // - Links to #spark-chat (or [data-spark-open]) and
+  //   window.SparkForms.open() open it.
 
   var launcher = null;
 
   var LAUNCHER_CSS =
-    ".spk-l{position:fixed;bottom:20px;right:20px;z-index:2147483000;font-family:'Area Normal',system-ui,sans-serif}" +
+    ".spk-l{--spk-off:0px;position:fixed;bottom:calc(20px + var(--spk-off));right:20px;z-index:2147483000;font-family:'Area Normal',system-ui,sans-serif;transition:bottom 320ms cubic-bezier(.22,1,.36,1)}" +
     ".spk-l--left{right:auto;left:20px}" +
-    ".spk-l__btn{position:relative;width:60px;height:60px;border:0;padding:0;border-radius:50%;background:#1F2C41;cursor:pointer;box-shadow:0 24px 60px -20px rgba(18,28,43,.45),0 2px 8px rgba(18,28,43,.18);transition:transform 160ms cubic-bezier(.22,1,.36,1)}" +
+    ".spk-l[hidden]{display:none}" +
+    ".spk-l__btn{position:relative;width:60px;height:60px;border:0;padding:0;border-radius:50%;background:#1F2C41;cursor:pointer;box-shadow:0 0 0 1px rgba(255,255,255,.22),0 24px 60px -20px rgba(18,28,43,.45),0 2px 10px rgba(0,0,0,.25);transition:transform 160ms cubic-bezier(.22,1,.36,1);-webkit-tap-highlight-color:transparent}" +
     ".spk-l__btn:hover{transform:translateY(-2px)}" +
-    ".spk-l__btn:focus-visible{outline:2px solid #1F2C41;outline-offset:3px}" +
+    ".spk-l__btn:focus-visible{outline:2px solid #DFE8F2;outline-offset:3px}" +
     ".spk-l__btn img{width:100%;height:100%;border-radius:50%;display:block;transition:opacity 160ms,transform 320ms cubic-bezier(.22,1,.36,1)}" +
-    ".spk-l__x{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:rotate(-90deg);transition:opacity 160ms,transform 320ms cubic-bezier(.22,1,.36,1)}" +
+    ".spk-l__x{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transform:rotate(-90deg);transition:opacity 160ms,transform 320ms cubic-bezier(.22,1,.36,1)}" +
     ".spk-l--open .spk-l__btn img{opacity:0;transform:rotate(90deg)}" +
     ".spk-l--open .spk-l__x{opacity:1;transform:none}" +
     ".spk-l__dot{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#FC0038;border:2px solid #fff}" +
@@ -467,25 +477,70 @@
     ".spk-l--left .spk-l__teaser{right:auto;left:72px;border-radius:18px 18px 18px 7px}" +
     ".spk-l__teaser.is-in{opacity:1;transform:none;pointer-events:auto}" +
     ".spk-l--open .spk-l__teaser{display:none}" +
-    ".spk-l__panel{position:absolute;bottom:76px;right:0;width:380px;height:min(620px,calc(100vh - 116px));background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(18,28,43,.45),0 0 0 1px rgba(27,44,66,.08);opacity:0;transform:translateY(12px) scale(.98);transform-origin:bottom right;visibility:hidden;transition:opacity 320ms cubic-bezier(.22,1,.36,1),transform 320ms cubic-bezier(.22,1,.36,1),visibility 0s 320ms}" +
+    ".spk-l__panel{position:absolute;bottom:76px;right:0;width:380px;height:min(620px,calc(100vh - 116px - var(--spk-off)));height:min(620px,calc(100dvh - 116px - var(--spk-off)));background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(18,28,43,.45),0 0 0 1px rgba(27,44,66,.08);opacity:0;transform:translateY(12px) scale(.98);transform-origin:bottom right;visibility:hidden;transition:opacity 320ms cubic-bezier(.22,1,.36,1),transform 320ms cubic-bezier(.22,1,.36,1),visibility 0s 320ms}" +
     ".spk-l--left .spk-l__panel{right:auto;left:0;transform-origin:bottom left}" +
     ".spk-l--open .spk-l__panel{opacity:1;transform:none;visibility:visible;transition-delay:0s}" +
     ".spk-l__panel iframe{height:100%}" +
     ".spk-l__close{position:absolute;top:18px;right:14px;width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#1F2C41;cursor:pointer;display:flex;align-items:center;justify-content:center}" +
     ".spk-l__close:hover{background:rgba(27,44,66,.06)}" +
     "@media (max-width:480px){" +
-    ".spk-l{bottom:16px;right:16px}.spk-l--left{left:16px}" +
+    ".spk-l{bottom:calc(16px + var(--spk-off));right:16px}.spk-l--left{left:16px}" +
     ".spk-l__panel{position:fixed;inset:0;width:auto;height:100%;border-radius:0}" +
     ".spk-l--open .spk-l__btn{display:none}" +
+    ".spk-l__teaser{max-width:200px}" +
     "}" +
-    "@media (prefers-reduced-motion:reduce){.spk-l *{transition:none!important}}";
+    "@media (prefers-reduced-motion:reduce){.spk-l,.spk-l *{transition:none!important}}";
 
   var X_ICON =
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
+  function onIdle(fn) {
+    if ("requestIdleCallback" in window) window.requestIdleCallback(fn, { timeout: 2500 });
+    else setTimeout(fn, 600);
+  }
+
+  function pathPatterns(attr) {
+    var raw = SCRIPT && SCRIPT.getAttribute(attr);
+    if (!raw) return null;
+    return raw
+      .split(",")
+      .map(function (p) {
+        return p.trim();
+      })
+      .filter(Boolean)
+      .map(function (p) {
+        var re = p.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+        return new RegExp("^" + re + "/?$");
+      });
+  }
+
+  function matchesAny(patterns, path) {
+    for (var i = 0; i < patterns.length; i++) if (patterns[i].test(path)) return true;
+    return false;
+  }
+
+  // Framer navigates with history.pushState: announce route changes.
+  function onRouteChange(fn) {
+    if (!window.__sparkFormsRouteHook) {
+      window.__sparkFormsRouteHook = true;
+      ["pushState", "replaceState"].forEach(function (m) {
+        var orig = history[m];
+        history[m] = function () {
+          var r = orig.apply(this, arguments);
+          window.dispatchEvent(new Event("spark-forms:route"));
+          return r;
+        };
+      });
+      window.addEventListener("popstate", function () {
+        window.dispatchEvent(new Event("spark-forms:route"));
+      });
+    }
+    window.addEventListener("spark-forms:route", fn);
+  }
+
   function setupLauncher() {
     var slug = SCRIPT && SCRIPT.getAttribute("data-spark-launcher");
-    if (!slug || launcher || window !== window.top) return;
+    if (!slug || launcher || window !== window.top || !document.body) return;
 
     var label = SCRIPT.getAttribute("data-spark-launcher-label") || "Abrir chat";
     var teaserText = SCRIPT.getAttribute("data-spark-launcher-teaser");
@@ -493,6 +548,9 @@
     var icon =
       SCRIPT.getAttribute("data-spark-launcher-icon") ||
       BASE + "/brand/spark-avatar-navy.png";
+    var fixedOffset = parseInt(SCRIPT.getAttribute("data-spark-launcher-offset") || "", 10);
+    var include = pathPatterns("data-spark-launcher-pages");
+    var exclude = pathPatterns("data-spark-launcher-exclude");
 
     var style = document.createElement("style");
     style.textContent = LAUNCHER_CSS;
@@ -500,6 +558,7 @@
 
     var root = document.createElement("div");
     root.className = "spk-l" + (side === "left" ? " spk-l--left" : "");
+    root.setAttribute("data-spark-launcher-root", "");
 
     var panel = document.createElement("div");
     panel.className = "spk-l__panel";
@@ -519,7 +578,7 @@
     btn.setAttribute("aria-label", label);
     btn.setAttribute("aria-expanded", "false");
     btn.innerHTML =
-      '<img alt="" src="' + icon + '"><span class="spk-l__x" style="color:#fff">' + X_ICON + "</span>";
+      '<img alt="" width="60" height="60" decoding="async" src="' + icon + '"><span class="spk-l__x">' + X_ICON + "</span>";
     var dot = document.createElement("span");
     dot.className = "spk-l__dot";
     dot.setAttribute("aria-hidden", "true");
@@ -540,20 +599,24 @@
     var iframe = null;
     var isOpen = false;
 
+    function ensureFrame() {
+      if (iframe) return;
+      iframe = createFrame(slug, label);
+      iframe.setAttribute("data-spark-launcher", "1");
+      iframe.src = buildSrc(slug, false);
+      panel.insertBefore(iframe, close);
+      iframesBySlug[slug] = iframe;
+    }
+
     function open() {
-      if (isOpen) return;
+      if (isOpen || root.hidden) return;
       isOpen = true;
-      if (!iframe) {
-        iframe = createFrame(slug, label);
-        iframe.setAttribute("data-spark-launcher", "1");
-        iframe.src = buildSrc(slug, false);
-        panel.insertBefore(iframe, close);
-        iframesBySlug[slug] = iframe;
-      }
+      ensureFrame();
       root.classList.add("spk-l--open");
       btn.setAttribute("aria-expanded", "true");
       btn.setAttribute("aria-label", "Fechar chat");
       if (dot.parentNode) dot.parentNode.removeChild(dot);
+      dismissTeaser();
       if (window.matchMedia("(max-width: 480px)").matches) {
         document.documentElement.style.overflow = "hidden";
       }
@@ -572,8 +635,13 @@
       btn.setAttribute("aria-expanded", "false");
       btn.setAttribute("aria-label", label);
       document.documentElement.style.overflow = "";
-      btn.focus();
+      btn.focus({ preventScroll: true });
     }
+
+    // Warm the chat on intent so the click opens it instantly.
+    btn.addEventListener("pointerenter", ensureFrame, { once: true });
+    btn.addEventListener("touchstart", ensureFrame, { once: true, passive: true });
+    btn.addEventListener("focus", ensureFrame, { once: true });
 
     btn.addEventListener("click", function () {
       isOpen ? hide() : open();
@@ -589,29 +657,75 @@
       open();
     });
 
-    if (teaser) {
-      var TEASER_KEY = "spark-forms:teaser-dismissed:" + slug;
-      var dismissed = false;
+    // Teaser: once per session, 3 s after the first eligible page.
+    var TEASER_KEY = "spark-forms:teaser-dismissed:" + slug;
+    var teaserTimer = null;
+    function teaserDismissed() {
       try {
-        dismissed = sessionStorage.getItem(TEASER_KEY) === "1";
+        return sessionStorage.getItem(TEASER_KEY) === "1";
+      } catch (e) {
+        return false;
+      }
+    }
+    function dismissTeaser() {
+      if (!teaser) return;
+      teaser.classList.remove("is-in");
+      try {
+        sessionStorage.setItem(TEASER_KEY, "1");
       } catch (e) {
         /* ignore */
       }
-      if (!dismissed) {
-        setTimeout(function () {
-          if (!isOpen) teaser.classList.add("is-in");
-        }, 3000);
-      }
-      teaser.addEventListener("click", open);
-      btn.addEventListener("click", function () {
-        teaser.classList.remove("is-in");
-        try {
-          sessionStorage.setItem(TEASER_KEY, "1");
-        } catch (e) {
-          /* ignore */
-        }
-      });
     }
+    function scheduleTeaser() {
+      if (!teaser || teaserTimer || teaserDismissed()) return;
+      teaserTimer = setTimeout(function () {
+        if (!isOpen && !root.hidden) teaser.classList.add("is-in");
+      }, 3000);
+    }
+    if (teaser) teaser.addEventListener("click", open);
+
+    // Stack above a floating WhatsApp button in the same corner.
+    function cornerOffset() {
+      if (fixedOffset >= 0) return fixedOffset;
+      var nodes = document.querySelectorAll('a[href*="wa.me"], a[href*="api.whatsapp.com"], [data-spark-avoid]');
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      var lift = 0;
+      for (var i = 0; i < nodes.length; i++) {
+        var r = nodes[i].getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        var inCorner =
+          r.bottom > vh - 160 &&
+          (side === "left" ? r.left < 160 : r.right > vw - 160);
+        if (inCorner) lift = Math.max(lift, vh - r.top - 20 + 12);
+      }
+      return lift;
+    }
+    var offTimer = null;
+    function updateOffset() {
+      clearTimeout(offTimer);
+      offTimer = setTimeout(function () {
+        root.style.setProperty("--spk-off", cornerOffset() + "px");
+      }, 120);
+    }
+
+    function applyRoute() {
+      var path = location.pathname;
+      var show =
+        (!include || matchesAny(include, path)) &&
+        !(exclude && matchesAny(exclude, path));
+      if (!show) hide();
+      root.hidden = !show;
+      if (show) scheduleTeaser();
+      // Framer renders the new page after the URL changes: re-check the
+      // corner now and once the page has painted.
+      updateOffset();
+      setTimeout(updateOffset, 1200);
+    }
+
+    onRouteChange(applyRoute);
+    window.addEventListener("resize", updateOffset, { passive: true });
+    applyRoute();
 
     launcher = { open: open, close: hide };
   }
@@ -984,7 +1098,15 @@
 
   function boot() {
     scan();
-    setupLauncher();
+    if (SCRIPT && SCRIPT.getAttribute("data-spark-launcher")) {
+      onIdle(function () {
+        var pc = document.createElement("link");
+        pc.rel = "preconnect";
+        pc.href = BASE;
+        document.head.appendChild(pc);
+        setupLauncher();
+      });
+    }
   }
 
   if (document.readyState === "loading") {
@@ -994,8 +1116,15 @@
   }
 
   // Re-scan when the host page swaps content dynamically (SPAs).
+  // Framer mutates the DOM constantly (animations): one scan per frame.
+  var scanQueued = false;
   var mo = new MutationObserver(function () {
-    scan();
+    if (scanQueued) return;
+    scanQueued = true;
+    requestAnimationFrame(function () {
+      scanQueued = false;
+      scan();
+    });
   });
   mo.observe(document.documentElement, { childList: true, subtree: true });
 

@@ -113,7 +113,7 @@ Em **Custom Code → Embed** cole:
 
 ```html
 <div data-spark-form="sprout-qualifier" data-spark-min-height="640px"></div>
-<script async src="https://forms.spark.com.br/embed.js"></script>
+<script async src="https://forms-spark-maxx.vercel.app/embed.js"></script>
 ```
 
 O script:
@@ -125,9 +125,9 @@ O script:
 
 ### Botão flutuante (chat)
 
-Um botão redondo no canto da página que abre o form numa janela (tela
-cheia no celular), como os botões de WhatsApp. Em **Site Settings → Custom
-Code → End of `<body>`** (ou no Custom Code da página) cole:
+Um botão redondo no canto de todas as páginas que abre o form numa janela
+(tela cheia no celular), como os botões de WhatsApp. Em **Site Settings →
+General → Custom Code → End of `<body>` tag** cole:
 
 ```html
 <script async src="https://forms-spark-maxx.vercel.app/embed.js"
@@ -135,17 +135,27 @@ Code → End of `<body>`** (ou no Custom Code da página) cole:
   data-spark-launcher-teaser="Quer conhecer o Sprout? Fale com a gente"></script>
 ```
 
-- Tem que ir no Custom Code, não num bloco Embed: dentro do Embed o botão fica preso na caixa do bloco.
-- O iframe só carrega no primeiro clique e continua montado, então fechar não perde a conversa.
-- Qualquer link pra `#spark-chat` (ou elemento com `data-spark-open`) abre o chat. Também dá pra abrir com `window.SparkForms.open()`.
-- Opcionais: `data-spark-launcher-teaser` (balão que aparece depois de 3 s), `data-spark-launcher-position="left"`, `data-spark-launcher-label`, `data-spark-launcher-icon`.
+- Tem que ir no Custom Code, não num bloco Embed: dentro do Embed o botão fica preso na caixa do bloco. O Custom Code só roda no Preview e no site publicado, não no canvas.
+- Leve: o botão é montado quando o navegador fica ocioso, o chat pré-carrega no hover/toque e só carrega de fato no primeiro clique.
+- Acompanha a navegação do Framer (SPA): a conversa continua entre páginas e as regras de página são reavaliadas a cada troca.
+- Se houver um botão flutuante de WhatsApp (`wa.me`) no mesmo canto, o chat se empilha acima dele, página a página. Outro elemento a evitar: `data-spark-avoid`.
+- Qualquer link pra `#spark-chat` (ou elemento com `data-spark-open`) abre o chat; também `window.SparkForms.open()`.
 - Eventos no `dataLayer`: `spark_chat_opened` e `spark_form_submitted`.
+
+| Atributo | Para quê |
+|---|---|
+| `data-spark-launcher-teaser` | balão de convite (3 s depois, uma vez por sessão) |
+| `data-spark-launcher-exclude` | caminhos onde o botão não aparece: `"/obrigado,/blog*"` |
+| `data-spark-launcher-pages` | só nesses caminhos (padrão: todas as páginas) |
+| `data-spark-launcher-position` | `left` para o canto esquerdo |
+| `data-spark-launcher-offset` | distância fixa extra do rodapé, em px (desliga a detecção do WhatsApp) |
+| `data-spark-launcher-label` / `-icon` | texto acessível do botão / imagem do ícone |
 
 ### Iframe direto
 
 ```html
 <iframe
-  src="https://forms.spark.com.br/embed/sprout-qualifier?utm_source=site&transparent=1"
+  src="https://forms-spark-maxx.vercel.app/embed/sprout-qualifier?utm_source=site&transparent=1"
   style="width:100%;height:640px;border:0;"
   loading="lazy"
   title="Spark Sprout">
