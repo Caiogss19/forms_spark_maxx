@@ -303,18 +303,22 @@ export function ChatRunner({ form, embedded = false }: Props) {
       "--chat-bg": o.transparentBackground ? "transparent" : t.background,
       "--chat-surface": t.background,
       "--chat-fg": t.foreground,
+      "--chat-muted": o.mutedForeground ?? "var(--muted-foreground)",
       "--chat-accent": t.primary,
       "--chat-accent-fg": o.primaryForeground ?? "#FFFFFF",
       "--chat-bot-bg": o.cardBackground ?? "var(--muted)",
-      "--chat-user-bg": o.ctaBackground ?? t.foreground,
-      "--chat-user-fg": o.ctaForeground ?? t.background,
+      "--chat-user-bg": t.foreground,
+      "--chat-user-fg": t.background,
+      // The booking button is the conversion: its own color (brand CTA).
+      "--chat-cta": o.ctaBackground ?? t.primary,
+      "--chat-cta-fg": o.ctaForeground ?? o.primaryForeground ?? "#FFFFFF",
       "--chat-input-bg": o.inputBackground ?? t.background,
+      "--chat-input-border": o.inputBorder ?? "var(--border)",
       "--chat-border": o.cardBorderColor ?? "var(--border)",
-      "--chat-muted": o.mutedForeground ?? "var(--muted-foreground)",
       "--chat-radius": o.cardBorderRadius ?? "1.25rem",
       // Native controls and autofill follow the theme, not the OS.
       colorScheme: t.mode === "auto" ? "light dark" : t.mode,
-      fontFamily: o.fontFamily ? `${o.fontFamily}, var(--font-sans)` : undefined,
+      fontFamily: o.fontFamily ? `${o.fontFamily}, system-ui, sans-serif` : undefined,
     } as React.CSSProperties;
   }, [form.theme]);
 
@@ -325,8 +329,8 @@ export function ChatRunner({ form, embedded = false }: Props) {
       style={theme}
       className={
         embedded
-          ? "flex h-[100dvh] w-full bg-[var(--chat-bg)] text-[var(--chat-fg)]"
-          : "flex min-h-[100dvh] w-full items-center justify-center bg-[var(--chat-bg)] p-4 text-[var(--chat-fg)]"
+          ? "flex h-[100dvh] w-full bg-[var(--chat-bg)] text-[var(--chat-fg)] antialiased"
+          : "flex min-h-[100dvh] w-full items-center justify-center bg-[var(--chat-bg)] p-4 text-[var(--chat-fg)] antialiased"
       }
     >
       <input
@@ -344,31 +348,31 @@ export function ChatRunner({ form, embedded = false }: Props) {
         className={
           embedded
             ? "flex h-full w-full flex-col overflow-hidden"
-            : "flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-md flex-col overflow-hidden border border-[var(--chat-border)] shadow-sm"
+            : "flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-md flex-col overflow-hidden border border-[var(--chat-border)]"
         }
         style={{
           background: "var(--chat-surface)",
           borderRadius: embedded ? undefined : "var(--chat-radius)",
         }}
       >
-        <header className="flex items-center gap-3 border-b border-[var(--chat-border)] px-4 py-3">
+        <header className="flex items-center gap-3 border-b border-[var(--chat-border)] px-5 py-4">
           {chat?.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={chat.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
+            <img src={chat.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
           ) : (
             <span
               aria-hidden
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--chat-accent)] text-sm font-semibold text-[var(--chat-accent-fg)]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--chat-accent)] text-[15px] text-[var(--chat-accent-fg)]"
             >
               {(chat?.botName ?? "S").charAt(0)}
             </span>
           )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight">
+            <p className="truncate text-[15px] uppercase leading-tight tracking-[0.03em]">
               {chat?.botName ?? form.title}
             </p>
-            <p className="flex items-center gap-1.5 text-xs text-[var(--chat-muted)]">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <p className="mt-1 truncate text-[12px] uppercase leading-none tracking-[0.16em] text-[var(--chat-muted)]">
+              <span aria-hidden className="mr-[0.35em]">✳</span>
               {typing ? "digitando…" : (chat?.botSubtitle ?? "online")}
             </p>
           </div>
@@ -378,18 +382,18 @@ export function ChatRunner({ form, embedded = false }: Props) {
           ref={scrollRef}
           role="log"
           aria-live="polite"
-          className="spark-no-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-4"
+          className="spark-no-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto px-5 py-5"
         >
           {messages.map((m) => (
             <motion.div
               key={m.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
               className={
                 m.from === "bot"
-                  ? "max-w-[85%] self-start whitespace-pre-line rounded-2xl rounded-bl-md bg-[var(--chat-bot-bg)] px-3.5 py-2 text-sm leading-relaxed"
-                  : "max-w-[85%] self-end whitespace-pre-line break-words rounded-2xl rounded-br-md bg-[var(--chat-user-bg)] px-3.5 py-2 text-sm leading-relaxed text-[var(--chat-user-fg)]"
+                  ? "max-w-[85%] self-start whitespace-pre-line rounded-[18px] rounded-bl-[7px] bg-[var(--chat-bot-bg)] px-4 py-2.5 text-[15px] leading-normal"
+                  : "max-w-[85%] self-end whitespace-pre-line break-words rounded-[18px] rounded-br-[7px] bg-[var(--chat-user-bg)] px-4 py-2.5 text-[15px] leading-normal text-[var(--chat-user-fg)]"
               }
             >
               {m.text}
@@ -399,13 +403,13 @@ export function ChatRunner({ form, embedded = false }: Props) {
           {typing ? (
             <div
               aria-label="digitando"
-              className="flex gap-1 self-start rounded-2xl rounded-bl-md bg-[var(--chat-bot-bg)] px-3.5 py-3"
+              className="flex gap-1 self-start rounded-[18px] rounded-bl-[7px] bg-[var(--chat-bot-bg)] px-4 py-3.5"
             >
               {[0, 1, 2].map((i) => (
                 <motion.span
                   key={i}
-                  className="h-1.5 w-1.5 rounded-full bg-[var(--chat-muted)]"
-                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  className="h-1.5 w-1.5 rounded-full bg-[var(--chat-accent)]"
+                  animate={{ opacity: [0.25, 0.9, 0.25] }}
                   transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
                 />
               ))}
@@ -419,7 +423,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
                   key={opt.value}
                   type="button"
                   onClick={() => void answer(opt.value, opt.label)}
-                  className="max-w-[85%] rounded-2xl border border-[var(--chat-accent)] px-3.5 py-2 text-left text-sm leading-snug text-[var(--chat-accent)] transition-colors hover:bg-[var(--chat-accent)] hover:text-[var(--chat-accent-fg)]"
+                  className="max-w-[85%] rounded-[18px] border border-[var(--chat-accent)] px-4 py-2.5 text-left text-[15px] leading-snug text-[var(--chat-accent)] transition-colors duration-150 hover:bg-[var(--chat-accent)] hover:text-[var(--chat-accent-fg)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--chat-accent)]"
                 >
                   {opt.emoji ? `${opt.emoji} ` : ""}
                   {opt.label}
@@ -435,7 +439,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
             <button
               type="button"
               onClick={() => void retrySubmit()}
-              className="mt-1 inline-flex items-center gap-2 self-end rounded-2xl border border-[var(--chat-accent)] px-3.5 py-2 text-sm text-[var(--chat-accent)]"
+              className="mt-1 inline-flex items-center gap-2 self-end rounded-full border border-[var(--chat-accent)] px-5 py-2.5 text-[15px] text-[var(--chat-accent)] transition-colors duration-150 hover:bg-[var(--chat-accent)] hover:text-[var(--chat-accent-fg)]"
             >
               <RotateCcw className="h-4 w-4" aria-hidden />
               Tentar de novo
@@ -446,6 +450,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
             <motion.a
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
               href={schedulingUrl}
               target="_blank"
               rel="noopener"
@@ -455,9 +460,9 @@ export function ChatRunner({ form, embedded = false }: Props) {
                   "*",
                 )
               }
-              className="mt-1 inline-flex items-center gap-2 self-start rounded-full bg-[var(--chat-accent)] px-5 py-2.5 text-sm font-medium text-[var(--chat-accent-fg)] transition-opacity hover:opacity-90"
+              className="mt-2 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--chat-cta)] px-8 text-[18px] text-[var(--chat-cta-fg)] transition-[transform,box-shadow] duration-150 hover:-translate-y-px hover:shadow-[0_24px_60px_-20px_rgba(18,28,43,0.45)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[var(--chat-fg)]"
             >
-              <CalendarDays className="h-4 w-4" aria-hidden />
+              <CalendarDays className="h-5 w-5" aria-hidden />
               {chat?.scheduling?.ctaLabel ?? "Escolher horário"}
             </motion.a>
           ) : null}
@@ -470,7 +475,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
               void onSendText();
             }}
             noValidate
-            className="flex items-end gap-2 border-t border-[var(--chat-border)] px-3 py-3"
+            className="flex items-end gap-2 border-t border-[var(--chat-border)] px-4 py-3"
           >
             {step.type === "long_text" ? (
               <textarea
@@ -487,7 +492,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
                   }
                 }}
                 placeholder={step.placeholder ?? "Escreva aqui…"}
-                className="min-h-10 flex-1 resize-none rounded-2xl border border-[var(--chat-border)] bg-[var(--chat-input-bg)] px-4 text-[var(--chat-fg)] placeholder:text-[var(--chat-muted)] py-2 text-sm outline-none focus:border-[var(--chat-accent)]"
+                className="min-h-11 flex-1 resize-none rounded-[18px] border border-[var(--chat-input-border)] bg-[var(--chat-input-bg)] px-4 py-2.5 text-[15px] text-[var(--chat-fg)] outline-none placeholder:text-[var(--chat-muted)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--chat-accent)]"
               />
             ) : (
               <input
@@ -500,7 +505,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
                 }
                 {...inputAttrs(step)}
                 placeholder={step.placeholder ?? "Escreva aqui…"}
-                className="h-10 min-w-0 flex-1 rounded-full border border-[var(--chat-border)] bg-[var(--chat-input-bg)] px-4 text-[var(--chat-fg)] placeholder:text-[var(--chat-muted)] text-sm outline-none focus:border-[var(--chat-accent)]"
+                className="h-11 min-w-0 flex-1 rounded-full border border-[var(--chat-input-border)] bg-[var(--chat-input-bg)] px-5 text-[15px] text-[var(--chat-fg)] outline-none placeholder:text-[var(--chat-muted)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--chat-accent)]"
               />
             )}
             {!step.required && !draft.trim() ? (
@@ -510,16 +515,16 @@ export function ChatRunner({ form, embedded = false }: Props) {
                 type="submit"
                 aria-label="Enviar"
                 disabled={!draft.trim()}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--chat-accent)] text-[var(--chat-accent-fg)] transition-opacity disabled:opacity-40"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--chat-accent)] text-[var(--chat-accent-fg)] transition-opacity duration-150 disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--chat-accent)]"
               >
-                <ArrowUp className="h-4 w-4" aria-hidden />
+                <ArrowUp className="h-[18px] w-[18px]" aria-hidden />
               </button>
             )}
           </form>
         ) : null}
 
         {form.lgpdNotice && messages.length > 0 && phase !== "done" ? (
-          <p className="whitespace-pre-line px-4 pb-3 text-[11px] leading-snug text-[var(--chat-muted)]">
+          <p className="whitespace-pre-line px-5 pb-3 text-[11px] leading-snug text-[var(--chat-muted)]">
             {form.lgpdNotice}
           </p>
         ) : null}
@@ -533,7 +538,7 @@ function SkipButton({ label, onClick }: { label?: string; onClick: () => void })
     <button
       type="button"
       onClick={onClick}
-      className="h-10 shrink-0 rounded-full px-4 text-sm text-[var(--chat-muted)] underline-offset-4 hover:underline"
+      className="h-11 shrink-0 rounded-full px-4 text-[14px] text-[var(--chat-muted)] underline underline-offset-4 decoration-[var(--chat-input-border)] hover:text-[var(--chat-fg)] hover:decoration-current"
     >
       {label ?? "Pular"}
     </button>

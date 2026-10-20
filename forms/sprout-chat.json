@@ -5,36 +5,47 @@
   "layout": "chat",
   "product": "sprout",
   "conversionIdentifier": "Sprout - LP",
-  "tags": ["sprout", "chat"],
+  "tags": [
+    "sprout",
+    "chat"
+  ],
   "webhookUrl": "https://growthsparkmaxx.app.n8n.cloud/webhook/greatpages-rd-unificado",
-  "hiddenFields": [{ "key": "form_id", "default": "chat_sprout" }],
+  "hiddenFields": [
+    {
+      "key": "form_id",
+      "default": "chat_sprout"
+    }
+  ],
   "theme": {
     "mode": "light",
+    "fontFamily": "\"Sparkinho Simbolo\", \"Area Normal\"",
     "background": "#FFFFFF",
-    "foreground": "#121C2B",
-    "primary": "#0099FF",
+    "foreground": "#1F2C41",
+    "primary": "#1F2C41",
     "primaryForeground": "#FFFFFF",
     "cardBackground": "#DFE8F2",
-    "ctaBackground": "#121C2B",
+    "ctaBackground": "#FC0038",
     "ctaForeground": "#FFFFFF",
-    "cardBorderColor": "#DFE8F2",
-    "mutedForeground": "#5B6675",
-    "cardBorderRadius": "1.25rem",
+    "inputBackground": "#ECEAEB",
+    "inputBorder": "rgba(27, 44, 66, 0.15)",
+    "cardBorderColor": "rgba(27, 44, 66, 0.12)",
+    "mutedForeground": "#5F7288",
+    "cardBorderRadius": "24px",
     "formMinHeight": "620px",
     "transparentBackground": true
   },
   "chat": {
     "botName": "Spark Maxx",
-    "botSubtitle": "Sprout Social · responde na hora",
+    "botSubtitle": "Sprout Social",
     "greeting": [
-      "Oi! 👋 Aqui é a Spark Maxx.",
+      "Oi! Aqui é a Spark Maxx.",
       "Vou te fazer umas perguntas rápidas pra entender o seu momento com marketing de influência. No final, você já agenda uma conversa com a Raí, do nosso time."
     ],
     "submitAfter": "cupom",
     "pageUrlFallback": "https://sparkmaxx.com.br/plataforma-sprout-social-influencer-marketing",
     "scheduling": {
       "url": "https://calendly.com/rai-tavares-spark/new-meeting",
-      "message": "Perfeito, {{Nome}}! ✅ Está tudo anotado.\nAgora é só escolher o melhor horário pra conversar com a Raí: são 15 minutos pelo Teams, e as suas respostas já vão preenchidas na agenda.",
+      "message": "Perfeito, {{Nome}}! Está tudo anotado.\nAgora é só escolher o melhor horário pra conversar com a Raí: são 15 minutos pelo Teams, e as suas respostas já vão preenchidas na agenda.",
       "ctaLabel": "Agendar com a Raí",
       "prefill": {
         "name": "Nome",
@@ -45,7 +56,8 @@
         "a4": "calendly_quem_toca",
         "a5": "calendly_detalhes"
       }
-    }
+    },
+    "avatarUrl": "/brand/spark-avatar-navy.png"
   },
   "steps": [
     {
@@ -54,7 +66,10 @@
       "title": "Pra começar, como você se chama?",
       "placeholder": "Seu nome",
       "required": true,
-      "validation": { "min": 2, "max": 80 },
+      "validation": {
+        "min": 2,
+        "max": 80
+      },
       "mapTo": "Nome"
     },
     {
@@ -63,7 +78,9 @@
       "title": "Prazer, {{Nome}}! Qual é o seu e-mail corporativo?",
       "placeholder": "voce@empresa.com.br",
       "required": true,
-      "validation": { "corporateOnly": true },
+      "validation": {
+        "corporateOnly": true
+      },
       "messages": {
         "blockedDomain": "Esse parece um e-mail pessoal. Me passa o corporativo? Assim a gente agiliza seu atendimento."
       },
@@ -83,7 +100,9 @@
       "title": "De qual empresa você fala?",
       "placeholder": "Empresa",
       "required": true,
-      "validation": { "max": 120 },
+      "validation": {
+        "max": 120
+      },
       "mapTo": "Empresa"
     },
     {
@@ -93,9 +112,18 @@
       "required": true,
       "mapTo": "Voce_e",
       "options": [
-        { "value": "Empresa_ou_Marca", "label": "Empresa ou Marca" },
-        { "value": "Agencia_de_publicidade", "label": "Agência de publicidade" },
-        { "value": "Influenciador", "label": "Influenciador" }
+        {
+          "value": "Empresa_ou_Marca",
+          "label": "Empresa ou Marca"
+        },
+        {
+          "value": "Agencia_de_publicidade",
+          "label": "Agência de publicidade"
+        },
+        {
+          "value": "Influenciador",
+          "label": "Influenciador"
+        }
       ]
     },
     {
@@ -105,10 +133,22 @@
       "required": true,
       "mapTo": "O_que_voce_esta_buscando",
       "options": [
-        { "value": "gestao_completa", "label": "Gestão completa: da descoberta de creators à mensuração das campanhas" },
-        { "value": "encontrar_influenciadores", "label": "Encontrar influenciadores de alta autoridade no meu nicho" },
-        { "value": "validar_reputacao", "label": "Validar e monitorar a reputação dos creators que já trabalho ou quero contratar" },
-        { "value": "ainda_estou_estudando", "label": "Ainda estou estudando como o marketing de influência pode funcionar pro meu negócio" }
+        {
+          "value": "gestao_completa",
+          "label": "Gestão completa: da descoberta de creators à mensuração das campanhas"
+        },
+        {
+          "value": "encontrar_influenciadores",
+          "label": "Encontrar influenciadores de alta autoridade no meu nicho"
+        },
+        {
+          "value": "validar_reputacao",
+          "label": "Validar e monitorar a reputação dos creators que já trabalho ou quero contratar"
+        },
+        {
+          "value": "ainda_estou_estudando",
+          "label": "Ainda estou estudando como o marketing de influência pode funcionar pro meu negócio"
+        }
       ]
     },
     {
@@ -118,9 +158,18 @@
       "required": true,
       "mapTo": "Frequencia_de_campanhas_de_marketing",
       "options": [
-        { "value": "Faco_recorrente", "label": "Faço recorrente" },
-        { "value": "Faco_pontualmente", "label": "Faço pontualmente" },
-        { "value": "ainda_nao_faco", "label": "Ainda não faço" }
+        {
+          "value": "Faco_recorrente",
+          "label": "Faço recorrente"
+        },
+        {
+          "value": "Faco_pontualmente",
+          "label": "Faço pontualmente"
+        },
+        {
+          "value": "ainda_nao_faco",
+          "label": "Ainda não faço"
+        }
       ]
     },
     {
@@ -130,7 +179,9 @@
       "placeholder": "Cupom",
       "required": false,
       "skipLabel": "Não tenho cupom",
-      "validation": { "max": 40 },
+      "validation": {
+        "max": 40
+      },
       "mapTo": "Cupom"
     },
     {
@@ -140,10 +191,22 @@
       "required": true,
       "mapTo": "calendly_gestao_campanhas",
       "options": [
-        { "value": "Manual", "label": "Manual" },
-        { "value": "Planilhas", "label": "Planilhas" },
-        { "value": "Uso uma plataforma", "label": "Uso uma plataforma" },
-        { "value": "Ainda não faço campanhas", "label": "Ainda não faço campanhas" }
+        {
+          "value": "Manual",
+          "label": "Manual"
+        },
+        {
+          "value": "Planilhas",
+          "label": "Planilhas"
+        },
+        {
+          "value": "Uso uma plataforma",
+          "label": "Uso uma plataforma"
+        },
+        {
+          "value": "Ainda não faço campanhas",
+          "label": "Ainda não faço campanhas"
+        }
       ]
     },
     {
@@ -153,9 +216,18 @@
       "required": true,
       "mapTo": "calendly_equipe_dedicada",
       "options": [
-        { "value": "Sim", "label": "Sim" },
-        { "value": "Não", "label": "Não" },
-        { "value": "Parcialmente", "label": "Parcialmente" }
+        {
+          "value": "Sim",
+          "label": "Sim"
+        },
+        {
+          "value": "Não",
+          "label": "Não"
+        },
+        {
+          "value": "Parcialmente",
+          "label": "Parcialmente"
+        }
       ]
     },
     {
@@ -165,9 +237,18 @@
       "required": true,
       "mapTo": "calendly_quem_toca",
       "options": [
-        { "value": "Minha equipe", "label": "Minha equipe" },
-        { "value": "Spark", "label": "Spark" },
-        { "value": "Ainda avaliando", "label": "Ainda avaliando" }
+        {
+          "value": "Minha equipe",
+          "label": "Minha equipe"
+        },
+        {
+          "value": "Spark",
+          "label": "Spark"
+        },
+        {
+          "value": "Ainda avaliando",
+          "label": "Ainda avaliando"
+        }
       ]
     },
     {
@@ -177,7 +258,9 @@
       "placeholder": "Opcional",
       "required": false,
       "skipLabel": "Pular",
-      "validation": { "max": 1000 },
+      "validation": {
+        "max": 1000
+      },
       "mapTo": "calendly_detalhes"
     }
   ]

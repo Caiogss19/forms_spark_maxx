@@ -225,7 +225,8 @@ export type Scheduling = z.infer<typeof SchedulingSchema>;
 export const ChatConfigSchema = z.object({
   botName: z.string().default("Spark Maxx"),
   botSubtitle: z.string().optional(),
-  avatarUrl: z.url().optional(),
+  // Absolute URL or a path served by this app (e.g. /brand/x.png).
+  avatarUrl: z.string().regex(/^(https?:\/\/|\/)/, "URL ou caminho /").optional(),
   // Bot bubbles sent before the first step.
   greeting: z.array(z.string()).default([]),
   // Step after which the lead goes to the webhook. Steps after it only
