@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowUp, CalendarDays, RotateCcw } from "lucide-react";
+import { ArrowUp, CalendarDays, ExternalLink, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { messageFor } from "@/components/form-runner/fields/Email";
@@ -9,7 +9,7 @@ import { resolveNextStep } from "@/lib/branching";
 import { validateEmail } from "@/lib/corporate-email";
 import { interpolate } from "@/lib/interpolate";
 import { formatPhoneBR } from "@/lib/mask";
-import { buildSchedulingUrl } from "@/lib/scheduling";
+import { buildSchedulingUrl, calendlyEvent } from "@/lib/scheduling";
 import { resolveTheme, type FormDefinition, type Step } from "@/lib/schema";
 import { STORAGE_KEYS, safeRemoveLocal } from "@/lib/storage";
 import { useFormStore, type AnswerValue } from "@/lib/store";
@@ -67,6 +67,11 @@ export function ChatRunner({ form, embedded = false }: Props) {
   const [stepId, setStepId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [schedulingUrl, setSchedulingUrl] = useState<string | null>(null);
+  const [bookingUrl, setBookingUrl] = useState<string | null>(null);
+  const [panelHeight, setPanelHeight] = useState(0);
+  // Messages from this index on render below the booking panel.
+  const [panelAt, setPanelAt] = useState<number | null>(null);
+  const [booked, setBooked] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -118,7 +123,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages, typing, phase]);
+  }, [messages, typing, phase, panelHeight]);
 
   const push = useCallback((from: Message["from"], text: string) => {
     setMessages((prev) => [...prev, { id: nextId.current++, from, text }]);
@@ -175,6 +180,11 @@ export function ChatRunner({ form, embedded = false }: Props) {
     if (chat?.scheduling) {
       const { answers, tracking } = useFormStore.getState();
       setSchedulingUrl(buildSchedulingUrl(chat.scheduling, answers, tracking));
+      if (chat.scheduling.display === "inline") {
+        setBookingUrl(
+          buildSchedulingUrl(chat.scheduling, answers, tracking, window.location.host),
+        );
+      }
       await botSay([chat.scheduling.message]);
     } else {
       const thanks = form.steps.find((s) => s.type === "thank_you");
@@ -184,6 +194,30 @@ export function ChatRunner({ form, embedded = false }: Props) {
     }
     if (alive.current) setPhase("done");
   }, [botSay, chat?.scheduling, form.steps, form.successMessage]);
+
+  // The booking panel fills the visible transcript so the calendar shows
+  // whole without scrolling; the conversation stays above it.
+  useEffect(() => {
+    if (phase !== "done" || !bookingUrl) return;
+    const el = scrollRef.current;
+    if (el) setPanelHeight(Math.max(460, el.clientHeight - 40));
+    setPanelAt((at) => at ?? messages.length);
+  }, [phase, bookingUrl, messages.length]);
+
+  // Calendly reports the booking via postMessage: confirm it in the chat
+  // and tell the host page (embed.js forwards it to dataLayer).
+  useEffect(() => {
+    if (!bookingUrl) return;
+    function onMessage(e: MessageEvent) {
+      if (calendlyEvent(e) !== "calendly.event_scheduled") return;
+      setBooked(true);
+      window.parent?.postMessage({ type: "spark-forms:scheduled", slug: form.slug }, "*");
+      const confirmation = chat?.scheduling?.confirmation;
+      if (confirmation) void botSay([confirmation]);
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [bookingUrl, botSay, chat?.scheduling?.confirmation, form.slug]);
 
   const ask = useCallback(
     async (id: string | null): Promise<void> => {
@@ -324,6 +358,38 @@ export function ChatRunner({ form, embedded = false }: Props) {
 
   const options = step && CHOICE_TYPES.has(step.type) ? (step.options ?? []) : [];
 
+  const renderMessage = (m: Message) => (
+    <motion.div
+      key={m.id}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      className={
+        m.from === "bot"
+          ? "max-w-[85%] self-start whitespace-pre-line rounded-[18px] rounded-bl-[7px] bg-[var(--chat-bot-bg)] px-4 py-2.5 text-[15px] leading-normal"
+          : "max-w-[85%] self-end whitespace-pre-line break-words rounded-[18px] rounded-br-[7px] bg-[var(--chat-user-bg)] px-4 py-2.5 text-[15px] leading-normal text-[var(--chat-user-fg)]"
+      }
+    >
+      {m.text}
+    </motion.div>
+  );
+
+  const typingBubble = (
+    <div
+      aria-label="digitando"
+      className="flex gap-1 self-start rounded-[18px] rounded-bl-[7px] bg-[var(--chat-bot-bg)] px-4 py-3.5"
+    >
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full bg-[var(--chat-accent)]"
+          animate={{ opacity: [0.25, 0.9, 0.25] }}
+          transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div
       style={theme}
@@ -384,37 +450,9 @@ export function ChatRunner({ form, embedded = false }: Props) {
           aria-live="polite"
           className="spark-no-scrollbar flex flex-1 flex-col gap-2 overflow-y-auto px-5 py-5"
         >
-          {messages.map((m) => (
-            <motion.div
-              key={m.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className={
-                m.from === "bot"
-                  ? "max-w-[85%] self-start whitespace-pre-line rounded-[18px] rounded-bl-[7px] bg-[var(--chat-bot-bg)] px-4 py-2.5 text-[15px] leading-normal"
-                  : "max-w-[85%] self-end whitespace-pre-line break-words rounded-[18px] rounded-br-[7px] bg-[var(--chat-user-bg)] px-4 py-2.5 text-[15px] leading-normal text-[var(--chat-user-fg)]"
-              }
-            >
-              {m.text}
-            </motion.div>
-          ))}
+          {(panelAt == null ? messages : messages.slice(0, panelAt)).map(renderMessage)}
 
-          {typing ? (
-            <div
-              aria-label="digitando"
-              className="flex gap-1 self-start rounded-[18px] rounded-bl-[7px] bg-[var(--chat-bot-bg)] px-4 py-3.5"
-            >
-              {[0, 1, 2].map((i) => (
-                <motion.span
-                  key={i}
-                  className="h-1.5 w-1.5 rounded-full bg-[var(--chat-accent)]"
-                  animate={{ opacity: [0.25, 0.9, 0.25] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
-                />
-              ))}
-            </div>
-          ) : null}
+          {typing && panelAt == null ? typingBubble : null}
 
           {phase === "awaiting" && options.length > 0 ? (
             <div className="mt-1 flex flex-col items-end gap-2">
@@ -446,7 +484,38 @@ export function ChatRunner({ form, embedded = false }: Props) {
             </button>
           ) : null}
 
-          {phase === "done" && schedulingUrl ? (
+          {phase === "done" && bookingUrl && panelHeight > 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-1 flex shrink-0 flex-col overflow-hidden rounded-[18px] border border-[var(--chat-border)] bg-white"
+              style={{ height: panelHeight }}
+            >
+              <iframe
+                src={bookingUrl}
+                title={chat?.scheduling?.ctaLabel ?? "Agendar"}
+                className="w-full flex-1 border-0"
+                allow="payment"
+              />
+              {!booked ? (
+                <a
+                  href={schedulingUrl ?? bookingUrl}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center justify-center gap-1.5 border-t border-[var(--chat-border)] py-2 text-[13px] text-[var(--chat-muted)] hover:text-[var(--chat-fg)]"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                  Abrir a agenda em outra aba
+                </a>
+              ) : null}
+            </motion.div>
+          ) : null}
+
+          {panelAt != null ? messages.slice(panelAt).map(renderMessage) : null}
+          {typing && panelAt != null ? typingBubble : null}
+
+          {phase === "done" && schedulingUrl && !bookingUrl ? (
             <motion.a
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}

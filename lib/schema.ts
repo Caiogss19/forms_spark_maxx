@@ -212,10 +212,23 @@ export const CHAT_STEP_TYPES = [
 ] as const satisfies readonly FieldTypeValue[];
 
 export const SchedulingSchema = z.object({
-  // Booking page (Calendly) opened at the end of the conversation.
+  // Booking page (Calendly) shown at the end of the conversation.
   url: z.url(),
   message: z.string(),
+  // "inline" embeds the booking page in the chat; "link" shows a button
+  // that opens it in a new tab.
+  display: z.enum(["inline", "link"]).default("inline"),
   ctaLabel: z.string().default("Escolher horário"),
+  // Bot reply once Calendly reports the booking (inline only).
+  confirmation: z.string().optional(),
+  // Calendly embed colors (hex without #) — honored on paid plans only.
+  colors: z
+    .object({
+      background: z.string().optional(),
+      text: z.string().optional(),
+      primary: z.string().optional(),
+    })
+    .default({}),
   // Query param on the booking page → answer key (step.mapTo ?? step.id).
   // Calendly reads name, email and a1..a10 (custom questions, in order).
   prefill: z.record(z.string(), z.string()).default({}),

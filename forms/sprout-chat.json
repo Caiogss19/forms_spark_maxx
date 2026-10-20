@@ -45,7 +45,7 @@
     "pageUrlFallback": "https://sparkmaxx.com.br/plataforma-sprout-social-influencer-marketing",
     "scheduling": {
       "url": "https://calendly.com/rai-tavares-spark/new-meeting",
-      "message": "Perfeito, {{Nome}}! Está tudo anotado.\nAgora é só escolher o melhor horário pra conversar com a Raí: são 15 minutos pelo Teams, e as suas respostas já vão preenchidas na agenda.",
+      "message": "Perfeito, {{Nome}}! Está tudo anotado.\nAgora é só escolher aqui embaixo o melhor horário pra conversar com a Raí: são 15 minutos pelo Teams, e as suas respostas já vão preenchidas.",
       "ctaLabel": "Agendar com a Raí",
       "prefill": {
         "name": "Nome",
@@ -55,6 +55,13 @@
         "a3": "calendly_equipe_dedicada",
         "a4": "calendly_quem_toca",
         "a5": "calendly_detalhes"
+      },
+      "display": "inline",
+      "confirmation": "Agendado! ✳ O convite com o link do Teams chega no seu e-mail. Até lá!",
+      "colors": {
+        "background": "ffffff",
+        "text": "1f2c41",
+        "primary": "1f2c41"
       }
     },
     "avatarUrl": "/brand/spark-avatar-navy.png"
