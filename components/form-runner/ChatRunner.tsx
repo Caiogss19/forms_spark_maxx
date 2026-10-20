@@ -72,6 +72,8 @@ export function ChatRunner({ form, embedded = false }: Props) {
   // Messages from this index on render below the booking panel.
   const [panelAt, setPanelAt] = useState<number | null>(null);
   const [booked, setBooked] = useState(false);
+  const [answered, setAnswered] = useState(0);
+  const [remaining, setRemaining] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -174,7 +176,28 @@ export function ChatRunner({ form, embedded = false }: Props) {
     setTracking({ page_url: url.toString() });
   }, [chat?.pageUrlFallback, form.product]);
 
+  // Input steps from `id` to the end, following the branching rules with
+  // the answers so far — a rule that skips steps shortens the count.
+  const remainingFrom = useCallback(
+    (id: string | null) => {
+      const answers = useFormStore.getState().answers;
+      const seen = new Set<string>();
+      let count = 0;
+      let cur = id;
+      while (cur && !seen.has(cur)) {
+        seen.add(cur);
+        const s = form.steps.find((x) => x.id === cur);
+        if (!s || s.type === "thank_you") break;
+        if (isInputStep(s)) count++;
+        cur = resolveNextStep({ currentStepId: cur, steps: form.steps, answers });
+      }
+      return count;
+    },
+    [form.steps],
+  );
+
   const finish = useCallback(async () => {
+    setRemaining(0);
     setStepId(null);
     setPhase("talking");
     if (chat?.scheduling) {
@@ -243,12 +266,13 @@ export function ChatRunner({ form, embedded = false }: Props) {
         );
       }
       setDraft("");
+      setRemaining(remainingFrom(next.id));
       setStepId(next.id);
       setPhase("awaiting");
     },
     // sendLead is declared below and only reads refs/stable callbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [botSay, finish, form.steps],
+    [botSay, finish, form.steps, remainingFrom],
   );
 
   async function sendLead(): Promise<boolean> {
@@ -293,6 +317,8 @@ export function ChatRunner({ form, embedded = false }: Props) {
     setStepId(null);
     setPhase("talking");
     push("user", display);
+    setAnswered((n) => n + 1);
+    setRemaining((r) => (r == null ? r : Math.max(0, r - 1)));
     setAnswer(current.mapTo ?? current.id, value);
     setDraft("");
 
@@ -443,6 +469,15 @@ export function ChatRunner({ form, embedded = false }: Props) {
             </p>
           </div>
         </header>
+
+        {chat?.progress !== false ? (
+          <ProgressBar
+            answered={answered}
+            remaining={remaining ?? remainingFrom(form.steps[0]?.id ?? null)}
+            started={remaining != null}
+            booked={booked}
+          />
+        ) : null}
 
         <div
           ref={scrollRef}
@@ -598,6 +633,56 @@ export function ChatRunner({ form, embedded = false }: Props) {
           </p>
         ) : null}
       </section>
+    </div>
+  );
+}
+
+function ProgressBar({
+  answered,
+  remaining,
+  started,
+  booked,
+}: {
+  answered: number;
+  remaining: number;
+  started: boolean;
+  booked: boolean;
+}) {
+  const total = answered + remaining;
+  const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+  const label = !started
+    ? `${total} perguntas rápidas`
+    : remaining === 0
+      ? booked
+        ? "Tudo pronto"
+        : "Perguntas concluídas"
+      : remaining === 1
+        ? "Falta 1 pergunta"
+        : `Faltam ${remaining} perguntas`;
+
+  return (
+    <div className="border-b border-[var(--chat-border)] px-5 pt-2.5 pb-3">
+      <div className="flex items-baseline justify-between text-[12px] leading-none text-[var(--chat-muted)]">
+        <span>{label}</span>
+        <span className="tabular-nums">
+          {answered}/{total}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Progresso das perguntas"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={answered}
+        className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--chat-bot-bg)]"
+      >
+        <motion.div
+          className="h-full rounded-full bg-[var(--chat-accent)]"
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
     </div>
   );
 }

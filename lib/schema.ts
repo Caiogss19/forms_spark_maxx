@@ -246,6 +246,8 @@ export const ChatConfigSchema = z.object({
   // feed the scheduling prefill, so a lead who drops out there is kept.
   // Defaults to the last input step.
   submitAfter: z.string().optional(),
+  // Bar under the header with how many questions are left.
+  progress: z.boolean().default(true),
   // Sent as page_url whenever the host page URL doesn't name the product
   // (Referrer-Policy stripped it to the origin, or the chat sits on a
   // page that isn't the product LP). n8n picks the product and the
