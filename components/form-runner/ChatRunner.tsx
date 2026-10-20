@@ -526,7 +526,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-1 flex shrink-0 flex-col overflow-hidden rounded-[18px] border border-[var(--chat-border)] bg-white"
+              className="mt-1 flex shrink-0 flex-col overflow-hidden rounded-[18px] border border-[var(--chat-border)] bg-[var(--chat-surface)]"
               style={{ height: panelHeight }}
             >
               <iframe
