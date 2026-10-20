@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Runner } from "@/components/form-runner";
 import { FormNotFoundError, getFormBySlug, getFormSlugs } from "@/lib/forms";
+import { toPublicForm } from "@/lib/schema";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -33,7 +34,7 @@ export default async function EmbedPage({ params, searchParams }: PageProps) {
   const transparent = sp.transparent === "1";
   return (
     <div data-spark-embed style={transparent ? { background: "transparent" } : undefined}>
-      <Runner form={form} embedded />
+      <Runner form={toPublicForm(form)} embedded />
     </div>
   );
 }

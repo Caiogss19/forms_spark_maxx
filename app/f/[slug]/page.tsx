@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Runner } from "@/components/form-runner";
 import { FormNotFoundError, getFormBySlug, getFormSlugs } from "@/lib/forms";
+import { toPublicForm } from "@/lib/schema";
 
 interface RouteParams {
   slug: string;
@@ -44,5 +45,5 @@ export default async function FormPage({ params }: PageProps) {
     if (err instanceof FormNotFoundError) notFound();
     throw err;
   });
-  return <Runner form={form} />;
+  return <Runner form={toPublicForm(form)} />;
 }

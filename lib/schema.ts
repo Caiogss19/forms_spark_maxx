@@ -88,6 +88,8 @@ export const StepSchema = z.object({
   mapTo: z.string().optional(),
   messages: StepMessagesSchema.optional(),
   imageUrl: z.url().optional(),
+  // Chat layout only: label of the button that skips an optional step.
+  skipLabel: z.string().optional(),
 });
 export type Step = z.infer<typeof StepSchema>;
 
@@ -197,13 +199,72 @@ export const HiddenFieldSchema = z.object({
   default: z.string().optional(),
 });
 
+export const CHAT_STEP_TYPES = [
+  "short_text",
+  "long_text",
+  "email",
+  "phone",
+  "number",
+  "url",
+  "dropdown",
+  "single_choice",
+  "statement",
+] as const satisfies readonly FieldTypeValue[];
+
+export const SchedulingSchema = z.object({
+  // Booking page (Calendly) shown at the end of the conversation.
+  url: z.url(),
+  message: z.string(),
+  // "inline" embeds the booking page in the chat; "link" shows a button
+  // that opens it in a new tab.
+  display: z.enum(["inline", "link"]).default("inline"),
+  ctaLabel: z.string().default("Escolher horário"),
+  // Bot reply once Calendly reports the booking (inline only).
+  confirmation: z.string().optional(),
+  // Calendly embed colors (hex without #) — honored on paid plans only.
+  colors: z
+    .object({
+      background: z.string().optional(),
+      text: z.string().optional(),
+      primary: z.string().optional(),
+    })
+    .default({}),
+  // Query param on the booking page → answer key (step.mapTo ?? step.id).
+  // Calendly reads name, email and a1..a10 (custom questions, in order).
+  prefill: z.record(z.string(), z.string()).default({}),
+});
+export type Scheduling = z.infer<typeof SchedulingSchema>;
+
+export const ChatConfigSchema = z.object({
+  botName: z.string().default("Spark Maxx"),
+  botSubtitle: z.string().optional(),
+  // Absolute URL or a path served by this app (e.g. /brand/x.png).
+  avatarUrl: z.string().regex(/^(https?:\/\/|\/)/, "URL ou caminho /").optional(),
+  // Bot bubbles sent before the first step.
+  greeting: z.array(z.string()).default([]),
+  // Step after which the lead goes to the webhook. Steps after it only
+  // feed the scheduling prefill, so a lead who drops out there is kept.
+  // Defaults to the last input step.
+  submitAfter: z.string().optional(),
+  // Bar under the header with how many questions are left.
+  progress: z.boolean().default(true),
+  // Sent as page_url whenever the host page URL doesn't name the product
+  // (Referrer-Policy stripped it to the origin, or the chat sits on a
+  // page that isn't the product LP). n8n picks the product and the
+  // conversion from page_url — the bare domain files the lead as
+  // "Site - Contato". The host page's querystring is kept.
+  pageUrlFallback: z.url().optional(),
+  scheduling: SchedulingSchema.optional(),
+});
+export type ChatConfig = z.infer<typeof ChatConfigSchema>;
+
 export const FormSchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/, "kebab-case only"),
   title: z.string(),
   description: z.string().optional(),
   estimatedMinutes: z.number().optional(),
   language: z.enum(["pt-BR", "en-US"]).default("pt-BR"),
-  layout: z.enum(["stepped", "single_page"]).default("stepped"),
+  layout: z.enum(["stepped", "single_page", "chat"]).default("stepped"),
   theme: ThemeSchema.optional(),
   webhookUrl: z.url().optional(),
   webhookAuth: z.string().optional(),
@@ -214,9 +275,42 @@ export const FormSchema = z.object({
   successMessage: z.string().optional(),
   lgpdNotice: z.string().optional(),
   hiddenFields: z.array(HiddenFieldSchema).default([]),
+  chat: ChatConfigSchema.optional(),
   steps: z.array(StepSchema).min(1),
+}).superRefine((form, ctx) => {
+  if (form.layout !== "chat") return;
+  const supported: readonly string[] = CHAT_STEP_TYPES;
+  form.steps.forEach((step, i) => {
+    if (step.type !== "thank_you" && !supported.includes(step.type)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["steps", i, "type"],
+        message: `"${step.type}" não é suportado no layout chat.`,
+      });
+    }
+  });
+  const submitAfter = form.chat?.submitAfter;
+  if (submitAfter && !form.steps.some((s) => s.id === submitAfter)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["chat", "submitAfter"],
+      message: `Step "${submitAfter}" não existe.`,
+    });
+  }
 });
 export type FormDefinition = z.infer<typeof FormSchema>;
+
+/**
+ * Strips server-only fields before the form is serialized to the
+ * browser. The client never posts to the webhook directly — /api/submit
+ * reloads the form server-side — so exposing the URL only invites spam.
+ */
+export function toPublicForm(form: FormDefinition): FormDefinition {
+  const { webhookUrl: _url, webhookAuth: _auth, ...rest } = form;
+  void _url;
+  void _auth;
+  return rest;
+}
 
 export function safeParseForm(input: unknown) {
   return FormSchema.safeParse(input);

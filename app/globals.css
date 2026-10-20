@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* Spark Maxx ID 2026 (spark-maxx-brand.vercel.app/tokens/fonts.css).
+   Declared here, downloaded only by forms whose theme.fontFamily names
+   them. Sparkinho Simbolo draws the brand symbol in place of ✳ (U+2733)
+   and stays first in the stack; unicode-range keeps the rest in Area
+   Normal. */
+@font-face { font-family: "Area Normal"; font-weight: 300; font-style: normal; font-display: swap;
+  src: url("https://framerusercontent.com/assets/V2KWqWyEKPi1mRTI3lEPAzlIWo.woff2") format("woff2"); }
+@font-face { font-family: "Area Normal"; font-weight: 400; font-style: normal; font-display: swap;
+  src: url("https://framerusercontent.com/assets/ubwZZONxdue6Smfapwtyo6wx2s.woff2") format("woff2"); }
+@font-face { font-family: "Area Normal"; font-weight: 400; font-style: italic; font-display: swap;
+  src: url("https://framerusercontent.com/assets/Aita5SBv1uJNXpe3MCGDHc8E0Ew.woff2") format("woff2"); }
+@font-face { font-family: "Area Normal"; font-weight: 500; font-style: normal; font-display: swap;
+  src: url("https://framerusercontent.com/assets/FR5gbJJfkIJrYXi1Jt03cLkeMn4.woff2") format("woff2"); }
+@font-face { font-family: "Area Normal"; font-weight: 600; font-style: normal; font-display: swap;
+  src: url("https://framerusercontent.com/assets/YkqAOFH5zJu3cOyfJdxnvRhcRk.woff2") format("woff2"); }
+@font-face { font-family: "Sparkinho Simbolo"; font-weight: 100 1000; font-style: normal; font-display: block;
+  unicode-range: U+2731, U+2733, U+FE0E, U+FE0F;
+  src: url("https://spark-maxx-brand.vercel.app/tokens/fonts/sparkinho-simbolo.woff2") format("woff2"),
+       url("https://spark-maxx-brand.vercel.app/tokens/fonts/sparkinho-simbolo.woff") format("woff"); }
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

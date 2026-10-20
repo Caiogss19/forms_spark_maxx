@@ -85,7 +85,7 @@ export function Email({
   );
 }
 
-function messageFor(
+export function messageFor(
   reason: string | undefined,
   step: FieldProps["step"],
 ): string {
