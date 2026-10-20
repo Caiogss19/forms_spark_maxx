@@ -1,0 +1,181 @@
+{
+  "slug": "sprout-chat-hero",
+  "title": "Spark Maxx — Sprout Social (LP hero)",
+  "language": "pt-BR",
+  "layout": "chat",
+  "product": "sprout",
+  "conversionIdentifier": "Sprout - LP",
+  "tags": [
+    "sprout",
+    "chat",
+    "chat_hero"
+  ],
+  "webhookUrl": "https://growthsparkmaxx.app.n8n.cloud/webhook/greatpages-rd-unificado",
+  "hiddenFields": [
+    {
+      "key": "form_id",
+      "default": "chat_sprout_hero"
+    }
+  ],
+  "theme": {
+    "mode": "dark",
+    "fontFamily": "\"Sparkinho Simbolo\", \"Area Normal\"",
+    "background": "#121212",
+    "foreground": "#F7F4F5",
+    "primary": "#DFE8F2",
+    "primaryForeground": "#1B2C42",
+    "cardBackground": "#1B2C42",
+    "ctaBackground": "#FC0038",
+    "ctaForeground": "#FFFFFF",
+    "inputBackground": "rgba(255, 255, 255, 0.08)",
+    "inputBorder": "rgba(255, 255, 255, 0.14)",
+    "cardBorderColor": "rgba(255, 255, 255, 0.10)",
+    "mutedForeground": "#AEC5DA",
+    "cardBorderRadius": "30px",
+    "formMinHeight": "620px",
+    "transparentBackground": true
+  },
+  "chat": {
+    "botName": "Spark Maxx",
+    "botSubtitle": "Sprout Social",
+    "greeting": [
+      "Oi! Aqui é a Spark Maxx.",
+      "Vou te fazer umas perguntas rápidas pra entender o seu momento com marketing de influência. No final, você já agenda uma conversa com o Raí, nosso especialista em influência."
+    ],
+    "submitAfter": "frequencia",
+    "pageUrlFallback": "https://sparkmaxx.com.br/plataforma-sprout-social-influencer-marketing",
+    "scheduling": {
+      "url": "https://calendly.com/rai-tavares-spark/new-meeting",
+      "message": "Perfeito, {{Nome}}! Está tudo anotado.\nAgora é só escolher aqui embaixo o melhor horário pra conversar com o Raí: são 15 minutos pelo Teams.",
+      "ctaLabel": "Agendar com o Raí",
+      "prefill": {
+        "name": "Nome",
+        "email": "E_mail_corporativo"
+      },
+      "display": "inline",
+      "confirmation": "Agendado! ✳ O convite com o link do Teams chega no seu e-mail. Até lá!",
+      "colors": {
+        "background": "ffffff",
+        "text": "1f2c41",
+        "primary": "1f2c41"
+      }
+    },
+    "avatarUrl": "/brand/spark-avatar-navy.png",
+    "progressColor": "#22C55E",
+    "progressTrack": "rgba(34, 197, 94, 0.16)"
+  },
+  "steps": [
+    {
+      "id": "nome",
+      "type": "short_text",
+      "title": "Pra começar, como você se chama?",
+      "placeholder": "Seu nome",
+      "required": true,
+      "validation": {
+        "min": 2,
+        "max": 80
+      },
+      "mapTo": "Nome"
+    },
+    {
+      "id": "email",
+      "type": "email",
+      "title": "Prazer, {{Nome}}! Qual é o seu e-mail corporativo?",
+      "placeholder": "voce@empresa.com.br",
+      "required": true,
+      "validation": {
+        "corporateOnly": true
+      },
+      "messages": {
+        "blockedDomain": "Esse parece um e-mail pessoal. Me passa o corporativo? Assim a gente agiliza seu atendimento."
+      },
+      "mapTo": "E_mail_corporativo"
+    },
+    {
+      "id": "telefone",
+      "type": "phone",
+      "title": "E um telefone com DDD pra gente falar com você?",
+      "placeholder": "(11) 99999-9999",
+      "required": true,
+      "mapTo": "Contato"
+    },
+    {
+      "id": "empresa",
+      "type": "short_text",
+      "title": "De qual empresa você fala?",
+      "placeholder": "Empresa",
+      "required": true,
+      "validation": {
+        "max": 120
+      },
+      "mapTo": "Empresa"
+    },
+    {
+      "id": "perfil",
+      "type": "single_choice",
+      "title": "Qual é o seu perfil?",
+      "required": true,
+      "mapTo": "Voce_e",
+      "options": [
+        {
+          "value": "Empresa_ou_Marca",
+          "label": "Empresa ou Marca"
+        },
+        {
+          "value": "Agencia_de_publicidade",
+          "label": "Agência de publicidade"
+        },
+        {
+          "value": "Influenciador",
+          "label": "Influenciador"
+        }
+      ]
+    },
+    {
+      "id": "o_que_busca",
+      "type": "single_choice",
+      "title": "O que você está buscando?",
+      "required": true,
+      "mapTo": "O_que_voce_esta_buscando",
+      "options": [
+        {
+          "value": "gestao_completa",
+          "label": "Gestão completa: da descoberta de creators à mensuração das campanhas"
+        },
+        {
+          "value": "encontrar_influenciadores",
+          "label": "Encontrar influenciadores de alta autoridade no meu nicho"
+        },
+        {
+          "value": "validar_reputacao",
+          "label": "Validar e monitorar a reputação dos creators que já trabalho ou quero contratar"
+        },
+        {
+          "value": "ainda_estou_estudando",
+          "label": "Ainda estou estudando como o marketing de influência pode funcionar pro meu negócio"
+        }
+      ]
+    },
+    {
+      "id": "frequencia",
+      "type": "single_choice",
+      "title": "Você faz campanha de influência?",
+      "required": true,
+      "mapTo": "Frequencia_de_campanhas_de_marketing",
+      "options": [
+        {
+          "value": "Faco_recorrente",
+          "label": "Faço recorrente"
+        },
+        {
+          "value": "Faco_pontualmente",
+          "label": "Faço pontualmente"
+        },
+        {
+          "value": "ainda_nao_faco",
+          "label": "Ainda não faço"
+        }
+      ]
+    }
+  ]
+}
