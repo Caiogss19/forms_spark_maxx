@@ -297,17 +297,23 @@ export function ChatRunner({ form, embedded = false }: Props) {
     const t = resolveTheme(form.theme);
     const o = form.theme ?? {};
     return {
+      // The page around the chat may go transparent (host shows through),
+      // but the chat itself always sits on a solid surface: on a dark host
+      // or a dark-mode browser the text color would otherwise vanish.
       "--chat-bg": o.transparentBackground ? "transparent" : t.background,
+      "--chat-surface": t.background,
       "--chat-fg": t.foreground,
       "--chat-accent": t.primary,
       "--chat-accent-fg": o.primaryForeground ?? "#FFFFFF",
       "--chat-bot-bg": o.cardBackground ?? "var(--muted)",
       "--chat-user-bg": o.ctaBackground ?? t.foreground,
       "--chat-user-fg": o.ctaForeground ?? t.background,
-      "--chat-input-bg": o.inputBackground ?? "transparent",
+      "--chat-input-bg": o.inputBackground ?? t.background,
       "--chat-border": o.cardBorderColor ?? "var(--border)",
       "--chat-muted": o.mutedForeground ?? "var(--muted-foreground)",
       "--chat-radius": o.cardBorderRadius ?? "1.25rem",
+      // Native controls and autofill follow the theme, not the OS.
+      colorScheme: t.mode === "auto" ? "light dark" : t.mode,
       fontFamily: o.fontFamily ? `${o.fontFamily}, var(--font-sans)` : undefined,
     } as React.CSSProperties;
   }, [form.theme]);
@@ -340,7 +346,10 @@ export function ChatRunner({ form, embedded = false }: Props) {
             ? "flex h-full w-full flex-col overflow-hidden"
             : "flex h-[min(720px,calc(100dvh-2rem))] w-full max-w-md flex-col overflow-hidden border border-[var(--chat-border)] shadow-sm"
         }
-        style={{ borderRadius: embedded ? undefined : "var(--chat-radius)" }}
+        style={{
+          background: "var(--chat-surface)",
+          borderRadius: embedded ? undefined : "var(--chat-radius)",
+        }}
       >
         <header className="flex items-center gap-3 border-b border-[var(--chat-border)] px-4 py-3">
           {chat?.avatarUrl ? (
@@ -478,7 +487,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
                   }
                 }}
                 placeholder={step.placeholder ?? "Escreva aqui…"}
-                className="min-h-10 flex-1 resize-none rounded-2xl border border-[var(--chat-border)] bg-[var(--chat-input-bg)] px-4 py-2 text-sm outline-none focus:border-[var(--chat-accent)]"
+                className="min-h-10 flex-1 resize-none rounded-2xl border border-[var(--chat-border)] bg-[var(--chat-input-bg)] px-4 text-[var(--chat-fg)] placeholder:text-[var(--chat-muted)] py-2 text-sm outline-none focus:border-[var(--chat-accent)]"
               />
             ) : (
               <input
@@ -491,7 +500,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
                 }
                 {...inputAttrs(step)}
                 placeholder={step.placeholder ?? "Escreva aqui…"}
-                className="h-10 min-w-0 flex-1 rounded-full border border-[var(--chat-border)] bg-[var(--chat-input-bg)] px-4 text-sm outline-none focus:border-[var(--chat-accent)]"
+                className="h-10 min-w-0 flex-1 rounded-full border border-[var(--chat-border)] bg-[var(--chat-input-bg)] px-4 text-[var(--chat-fg)] placeholder:text-[var(--chat-muted)] text-sm outline-none focus:border-[var(--chat-accent)]"
               />
             )}
             {!step.required && !draft.trim() ? (
