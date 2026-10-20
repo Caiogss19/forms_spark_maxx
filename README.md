@@ -123,6 +123,24 @@ O script:
 - Auto-resize via `ResizeObserver` no iframe + `postMessage` no parent.
 - Dispara `spark:submission` no `window` e empurra `dataLayer.push({ event: "spark_form_submitted", ... })` quando o lead converte.
 
+### Botão flutuante (chat)
+
+Um botão redondo no canto da página que abre o form numa janela (tela
+cheia no celular), como os botões de WhatsApp. Em **Site Settings → Custom
+Code → End of `<body>`** (ou no Custom Code da página) cole:
+
+```html
+<script async src="https://forms-spark-maxx.vercel.app/embed.js"
+  data-spark-launcher="sprout-chat"
+  data-spark-launcher-teaser="Quer conhecer o Sprout? Fale com a gente"></script>
+```
+
+- Tem que ir no Custom Code, não num bloco Embed: dentro do Embed o botão fica preso na caixa do bloco.
+- O iframe só carrega no primeiro clique e continua montado, então fechar não perde a conversa.
+- Qualquer link pra `#spark-chat` (ou elemento com `data-spark-open`) abre o chat. Também dá pra abrir com `window.SparkForms.open()`.
+- Opcionais: `data-spark-launcher-teaser` (balão que aparece depois de 3 s), `data-spark-launcher-position="left"`, `data-spark-launcher-label`, `data-spark-launcher-icon`.
+- Eventos no `dataLayer`: `spark_chat_opened` e `spark_form_submitted`.
+
 ### Iframe direto
 
 ```html

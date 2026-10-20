@@ -341,13 +341,9 @@
     return payload;
   }
 
-  function mount(host) {
-    var slug = host.getAttribute("data-spark-form");
-    if (!slug || host.querySelector("iframe[data-spark-mounted]")) return;
-
+  function buildSrc(slug, transparent) {
     var src = BASE + "/embed/" + encodeURIComponent(slug);
-    var transparent = host.getAttribute("data-spark-transparent");
-    if (transparent === "1" || transparent === "true") src += "?transparent=1";
+    if (transparent) src += "?transparent=1";
 
     // Forward UTMs into the iframe URL so the form sees them even before
     // postMessage fires (covers the very first SSR render). Falls back
@@ -378,17 +374,17 @@
     src +=
       (hasQuery ? "&" : "?") + "_p=" + encodeURIComponent(resolveHostUrl());
     src += "&_pr=" + encodeURIComponent(resolveHostReferrer());
+    return src;
+  }
 
+  function createFrame(slug, title) {
     var iframe = document.createElement("iframe");
-    iframe.title = host.getAttribute("data-spark-title") || "Spark Forms";
-    iframe.loading = "lazy";
+    iframe.title = title || "Spark Forms";
     iframe.setAttribute("data-spark-mounted", "1");
     iframe.style.border = "0";
     iframe.style.width = "100%";
     iframe.style.display = "block";
-    iframe.style.transition = "height 240ms cubic-bezier(0.22, 1, 0.36, 1)";
-    iframe.style.minHeight = host.getAttribute("data-spark-min-height") || "560px";
-    iframe.allow = "clipboard-write";
+    iframe.allow = "clipboard-write; payment";
 
     // Register the load handler before assigning `src` and appending —
     // a cached iframe can fire `load` synchronously inside appendChild,
@@ -420,8 +416,20 @@
           );
       }
     });
+    return iframe;
+  }
 
-    iframe.src = src;
+  function mount(host) {
+    var slug = host.getAttribute("data-spark-form");
+    if (!slug || host.querySelector("iframe[data-spark-mounted]")) return;
+
+    var transparent = host.getAttribute("data-spark-transparent");
+    var iframe = createFrame(slug, host.getAttribute("data-spark-title"));
+    iframe.loading = "lazy";
+    iframe.style.transition = "height 240ms cubic-bezier(0.22, 1, 0.36, 1)";
+    iframe.style.minHeight = host.getAttribute("data-spark-min-height") || "560px";
+
+    iframe.src = buildSrc(slug, transparent === "1" || transparent === "true");
     host.innerHTML = "";
     host.appendChild(iframe);
     iframesBySlug[slug] = iframe;
@@ -431,6 +439,181 @@
     // wrapper that strips path/query from document.referrer. The host
     // page needs a tiny listener — see the snippet in the embed modal.
     askTopForUrlWithRetries(slug);
+  }
+
+  // ─── Launcher (floating chat button) ──────────────────────────────
+  // <script src=".../embed.js" data-spark-launcher="sprout-chat"> adds a
+  // round button at the corner of the page that opens the form in a
+  // floating panel (full screen on phones). The iframe loads on the
+  // first open and stays mounted, so closing never loses the chat.
+  // Any link to #spark-chat (or element with data-spark-open) opens it.
+  // Needs to run on the page itself (Framer: Custom Code, end of body):
+  // inside an Embed block the button would be trapped in the block.
+
+  var launcher = null;
+
+  var LAUNCHER_CSS =
+    ".spk-l{position:fixed;bottom:20px;right:20px;z-index:2147483000;font-family:'Area Normal',system-ui,sans-serif}" +
+    ".spk-l--left{right:auto;left:20px}" +
+    ".spk-l__btn{position:relative;width:60px;height:60px;border:0;padding:0;border-radius:50%;background:#1F2C41;cursor:pointer;box-shadow:0 24px 60px -20px rgba(18,28,43,.45),0 2px 8px rgba(18,28,43,.18);transition:transform 160ms cubic-bezier(.22,1,.36,1)}" +
+    ".spk-l__btn:hover{transform:translateY(-2px)}" +
+    ".spk-l__btn:focus-visible{outline:2px solid #1F2C41;outline-offset:3px}" +
+    ".spk-l__btn img{width:100%;height:100%;border-radius:50%;display:block;transition:opacity 160ms,transform 320ms cubic-bezier(.22,1,.36,1)}" +
+    ".spk-l__x{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:rotate(-90deg);transition:opacity 160ms,transform 320ms cubic-bezier(.22,1,.36,1)}" +
+    ".spk-l--open .spk-l__btn img{opacity:0;transform:rotate(90deg)}" +
+    ".spk-l--open .spk-l__x{opacity:1;transform:none}" +
+    ".spk-l__dot{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:#FC0038;border:2px solid #fff}" +
+    ".spk-l__teaser{position:absolute;bottom:8px;right:72px;max-width:240px;width:max-content;background:#fff;color:#1F2C41;border:1px solid rgba(27,44,66,.12);border-radius:18px 18px 7px 18px;padding:10px 14px;font-size:14px;line-height:1.35;box-shadow:0 24px 60px -20px rgba(18,28,43,.45);cursor:pointer;opacity:0;transform:translateY(6px);transition:opacity 320ms,transform 320ms cubic-bezier(.22,1,.36,1);pointer-events:none}" +
+    ".spk-l--left .spk-l__teaser{right:auto;left:72px;border-radius:18px 18px 18px 7px}" +
+    ".spk-l__teaser.is-in{opacity:1;transform:none;pointer-events:auto}" +
+    ".spk-l--open .spk-l__teaser{display:none}" +
+    ".spk-l__panel{position:absolute;bottom:76px;right:0;width:380px;height:min(620px,calc(100vh - 116px));background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(18,28,43,.45),0 0 0 1px rgba(27,44,66,.08);opacity:0;transform:translateY(12px) scale(.98);transform-origin:bottom right;visibility:hidden;transition:opacity 320ms cubic-bezier(.22,1,.36,1),transform 320ms cubic-bezier(.22,1,.36,1),visibility 0s 320ms}" +
+    ".spk-l--left .spk-l__panel{right:auto;left:0;transform-origin:bottom left}" +
+    ".spk-l--open .spk-l__panel{opacity:1;transform:none;visibility:visible;transition-delay:0s}" +
+    ".spk-l__panel iframe{height:100%}" +
+    ".spk-l__close{position:absolute;top:18px;right:14px;width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#1F2C41;cursor:pointer;display:flex;align-items:center;justify-content:center}" +
+    ".spk-l__close:hover{background:rgba(27,44,66,.06)}" +
+    "@media (max-width:480px){" +
+    ".spk-l{bottom:16px;right:16px}.spk-l--left{left:16px}" +
+    ".spk-l__panel{position:fixed;inset:0;width:auto;height:100%;border-radius:0}" +
+    ".spk-l--open .spk-l__btn{display:none}" +
+    "}" +
+    "@media (prefers-reduced-motion:reduce){.spk-l *{transition:none!important}}";
+
+  var X_ICON =
+    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  function setupLauncher() {
+    var slug = SCRIPT && SCRIPT.getAttribute("data-spark-launcher");
+    if (!slug || launcher || window !== window.top) return;
+
+    var label = SCRIPT.getAttribute("data-spark-launcher-label") || "Abrir chat";
+    var teaserText = SCRIPT.getAttribute("data-spark-launcher-teaser");
+    var side = SCRIPT.getAttribute("data-spark-launcher-position");
+    var icon =
+      SCRIPT.getAttribute("data-spark-launcher-icon") ||
+      BASE + "/brand/spark-avatar-navy.png";
+
+    var style = document.createElement("style");
+    style.textContent = LAUNCHER_CSS;
+    document.head.appendChild(style);
+
+    var root = document.createElement("div");
+    root.className = "spk-l" + (side === "left" ? " spk-l--left" : "");
+
+    var panel = document.createElement("div");
+    panel.className = "spk-l__panel";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", label);
+
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "spk-l__close";
+    close.setAttribute("aria-label", "Fechar chat");
+    close.innerHTML = X_ICON;
+    panel.appendChild(close);
+
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "spk-l__btn";
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("aria-expanded", "false");
+    btn.innerHTML =
+      '<img alt="" src="' + icon + '"><span class="spk-l__x" style="color:#fff">' + X_ICON + "</span>";
+    var dot = document.createElement("span");
+    dot.className = "spk-l__dot";
+    dot.setAttribute("aria-hidden", "true");
+    btn.appendChild(dot);
+
+    var teaser = null;
+    if (teaserText) {
+      teaser = document.createElement("div");
+      teaser.className = "spk-l__teaser";
+      teaser.textContent = teaserText;
+      root.appendChild(teaser);
+    }
+
+    root.appendChild(panel);
+    root.appendChild(btn);
+    document.body.appendChild(root);
+
+    var iframe = null;
+    var isOpen = false;
+
+    function open() {
+      if (isOpen) return;
+      isOpen = true;
+      if (!iframe) {
+        iframe = createFrame(slug, label);
+        iframe.setAttribute("data-spark-launcher", "1");
+        iframe.src = buildSrc(slug, false);
+        panel.insertBefore(iframe, close);
+        iframesBySlug[slug] = iframe;
+      }
+      root.classList.add("spk-l--open");
+      btn.setAttribute("aria-expanded", "true");
+      btn.setAttribute("aria-label", "Fechar chat");
+      if (dot.parentNode) dot.parentNode.removeChild(dot);
+      if (window.matchMedia("(max-width: 480px)").matches) {
+        document.documentElement.style.overflow = "hidden";
+      }
+      try {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ event: "spark_chat_opened", spark_form_slug: slug });
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    function hide() {
+      if (!isOpen) return;
+      isOpen = false;
+      root.classList.remove("spk-l--open");
+      btn.setAttribute("aria-expanded", "false");
+      btn.setAttribute("aria-label", label);
+      document.documentElement.style.overflow = "";
+      btn.focus();
+    }
+
+    btn.addEventListener("click", function () {
+      isOpen ? hide() : open();
+    });
+    close.addEventListener("click", hide);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") hide();
+    });
+    document.addEventListener("click", function (e) {
+      var t = e.target && e.target.closest && e.target.closest('a[href$="#spark-chat"], [data-spark-open]');
+      if (!t) return;
+      e.preventDefault();
+      open();
+    });
+
+    if (teaser) {
+      var TEASER_KEY = "spark-forms:teaser-dismissed:" + slug;
+      var dismissed = false;
+      try {
+        dismissed = sessionStorage.getItem(TEASER_KEY) === "1";
+      } catch (e) {
+        /* ignore */
+      }
+      if (!dismissed) {
+        setTimeout(function () {
+          if (!isOpen) teaser.classList.add("is-in");
+        }, 3000);
+      }
+      teaser.addEventListener("click", open);
+      btn.addEventListener("click", function () {
+        teaser.classList.remove("is-in");
+        try {
+          sessionStorage.setItem(TEASER_KEY, "1");
+        } catch (e) {
+          /* ignore */
+        }
+      });
+    }
+
+    launcher = { open: open, close: hide };
   }
 
   // ─── Disqualifier modal (parent-page overlay) ─────────────────────
@@ -713,7 +896,10 @@
           }
         }
       }
-      if (iframe) iframe.style.height = Math.max(120, data.height) + "px";
+      // The launcher panel sizes its iframe; resize only applies inline.
+      if (iframe && !iframe.hasAttribute("data-spark-launcher")) {
+        iframe.style.height = Math.max(120, data.height) + "px";
+      }
       return;
     }
 
@@ -796,10 +982,15 @@
 
   window.addEventListener("message", handleMessage);
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", scan);
-  } else {
+  function boot() {
     scan();
+    setupLauncher();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
   }
 
   // Re-scan when the host page swaps content dynamically (SPAs).
@@ -812,5 +1003,11 @@
   window.SparkForms = {
     mount: mount,
     scan: scan,
+    open: function () {
+      if (launcher) launcher.open();
+    },
+    close: function () {
+      if (launcher) launcher.close();
+    },
   };
 })();
