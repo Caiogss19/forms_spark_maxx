@@ -1,0 +1,184 @@
+{
+  "slug": "sprout-chat",
+  "title": "Spark Maxx — Sprout Social",
+  "language": "pt-BR",
+  "layout": "chat",
+  "product": "sprout",
+  "conversionIdentifier": "Sprout - LP",
+  "tags": ["sprout", "chat"],
+  "webhookUrl": "https://growthsparkmaxx.app.n8n.cloud/webhook/greatpages-rd-unificado",
+  "hiddenFields": [{ "key": "form_id", "default": "chat_sprout" }],
+  "theme": {
+    "mode": "light",
+    "background": "#FFFFFF",
+    "foreground": "#121C2B",
+    "primary": "#0099FF",
+    "primaryForeground": "#FFFFFF",
+    "cardBackground": "#DFE8F2",
+    "ctaBackground": "#121C2B",
+    "ctaForeground": "#FFFFFF",
+    "cardBorderColor": "#DFE8F2",
+    "mutedForeground": "#5B6675",
+    "cardBorderRadius": "1.25rem",
+    "formMinHeight": "620px",
+    "transparentBackground": true
+  },
+  "chat": {
+    "botName": "Spark Maxx",
+    "botSubtitle": "Sprout Social · responde na hora",
+    "greeting": [
+      "Oi! 👋 Aqui é a Spark Maxx.",
+      "Vou te fazer umas perguntas rápidas pra entender o seu momento com marketing de influência. No final, você já agenda uma conversa com a Raí, do nosso time."
+    ],
+    "submitAfter": "cupom",
+    "pageUrlFallback": "https://sparkmaxx.com.br/plataforma-sprout-social-influencer-marketing",
+    "scheduling": {
+      "url": "https://calendly.com/rai-tavares-spark/new-meeting",
+      "message": "Perfeito, {{Nome}}! ✅ Está tudo anotado.\nAgora é só escolher o melhor horário pra conversar com a Raí: são 15 minutos pelo Teams, e as suas respostas já vão preenchidas na agenda.",
+      "ctaLabel": "Agendar com a Raí",
+      "prefill": {
+        "name": "Nome",
+        "email": "E_mail_corporativo",
+        "a1": "Empresa",
+        "a2": "calendly_gestao_campanhas",
+        "a3": "calendly_equipe_dedicada",
+        "a4": "calendly_quem_toca",
+        "a5": "calendly_detalhes"
+      }
+    }
+  },
+  "steps": [
+    {
+      "id": "nome",
+      "type": "short_text",
+      "title": "Pra começar, como você se chama?",
+      "placeholder": "Seu nome",
+      "required": true,
+      "validation": { "min": 2, "max": 80 },
+      "mapTo": "Nome"
+    },
+    {
+      "id": "email",
+      "type": "email",
+      "title": "Prazer, {{Nome}}! Qual é o seu e-mail corporativo?",
+      "placeholder": "voce@empresa.com.br",
+      "required": true,
+      "validation": { "corporateOnly": true },
+      "messages": {
+        "blockedDomain": "Esse parece um e-mail pessoal. Me passa o corporativo? Assim a gente agiliza seu atendimento."
+      },
+      "mapTo": "E_mail_corporativo"
+    },
+    {
+      "id": "telefone",
+      "type": "phone",
+      "title": "E um telefone com DDD pra gente falar com você?",
+      "placeholder": "(11) 99999-9999",
+      "required": true,
+      "mapTo": "Contato"
+    },
+    {
+      "id": "empresa",
+      "type": "short_text",
+      "title": "De qual empresa você fala?",
+      "placeholder": "Empresa",
+      "required": true,
+      "validation": { "max": 120 },
+      "mapTo": "Empresa"
+    },
+    {
+      "id": "perfil",
+      "type": "single_choice",
+      "title": "Qual é o seu perfil?",
+      "required": true,
+      "mapTo": "Voce_e",
+      "options": [
+        { "value": "Empresa_ou_Marca", "label": "Empresa ou Marca" },
+        { "value": "Agencia_de_publicidade", "label": "Agência de publicidade" },
+        { "value": "Influenciador", "label": "Influenciador" }
+      ]
+    },
+    {
+      "id": "o_que_busca",
+      "type": "single_choice",
+      "title": "O que você está buscando?",
+      "required": true,
+      "mapTo": "O_que_voce_esta_buscando",
+      "options": [
+        { "value": "gestao_completa", "label": "Gestão completa: da descoberta de creators à mensuração das campanhas" },
+        { "value": "encontrar_influenciadores", "label": "Encontrar influenciadores de alta autoridade no meu nicho" },
+        { "value": "validar_reputacao", "label": "Validar e monitorar a reputação dos creators que já trabalho ou quero contratar" },
+        { "value": "ainda_estou_estudando", "label": "Ainda estou estudando como o marketing de influência pode funcionar pro meu negócio" }
+      ]
+    },
+    {
+      "id": "frequencia",
+      "type": "single_choice",
+      "title": "Você faz campanha de influência?",
+      "required": true,
+      "mapTo": "Frequencia_de_campanhas_de_marketing",
+      "options": [
+        { "value": "Faco_recorrente", "label": "Faço recorrente" },
+        { "value": "Faco_pontualmente", "label": "Faço pontualmente" },
+        { "value": "ainda_nao_faco", "label": "Ainda não faço" }
+      ]
+    },
+    {
+      "id": "cupom",
+      "type": "short_text",
+      "title": "Tem algum cupom? Se não tiver, é só pular.",
+      "placeholder": "Cupom",
+      "required": false,
+      "skipLabel": "Não tenho cupom",
+      "validation": { "max": 40 },
+      "mapTo": "Cupom"
+    },
+    {
+      "id": "gestao_campanhas",
+      "type": "single_choice",
+      "title": "Agora umas perguntas pra Raí já chegar preparada na conversa. Hoje vocês gerenciam campanhas com influenciadores de forma manual ou usam alguma plataforma?",
+      "required": true,
+      "mapTo": "calendly_gestao_campanhas",
+      "options": [
+        { "value": "Manual", "label": "Manual" },
+        { "value": "Planilhas", "label": "Planilhas" },
+        { "value": "Uso uma plataforma", "label": "Uso uma plataforma" },
+        { "value": "Ainda não faço campanhas", "label": "Ainda não faço campanhas" }
+      ]
+    },
+    {
+      "id": "equipe_dedicada",
+      "type": "single_choice",
+      "title": "A empresa tem uma pessoa ou equipe dedicada ao marketing de influência?",
+      "required": true,
+      "mapTo": "calendly_equipe_dedicada",
+      "options": [
+        { "value": "Sim", "label": "Sim" },
+        { "value": "Não", "label": "Não" },
+        { "value": "Parcialmente", "label": "Parcialmente" }
+      ]
+    },
+    {
+      "id": "quem_toca",
+      "type": "single_choice",
+      "title": "A ideia é a sua equipe tocar as campanhas ou a Spark tocar para vocês?",
+      "required": true,
+      "mapTo": "calendly_quem_toca",
+      "options": [
+        { "value": "Minha equipe", "label": "Minha equipe" },
+        { "value": "Spark", "label": "Spark" },
+        { "value": "Ainda avaliando", "label": "Ainda avaliando" }
+      ]
+    },
+    {
+      "id": "detalhes",
+      "type": "long_text",
+      "title": "Se quiser, conta um pouco mais do que você está buscando.",
+      "placeholder": "Opcional",
+      "required": false,
+      "skipLabel": "Pular",
+      "validation": { "max": 1000 },
+      "mapTo": "calendly_detalhes"
+    }
+  ]
+}

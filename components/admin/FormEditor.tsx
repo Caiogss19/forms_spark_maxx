@@ -185,10 +185,11 @@ export function FormEditor({ initialForm }: Props) {
             <Field label="Layout">
               <Select
                 value={form.layout ?? "stepped"}
-                onChange={(v) => patch({ layout: v as "stepped" | "single_page" })}
+                onChange={(v) => patch({ layout: v as FormDefinition["layout"] })}
                 options={[
                   { value: "stepped", label: "Stepped (Typeform-like)" },
                   { value: "single_page", label: "Single page (clássico)" },
+                  { value: "chat", label: "Chat (conversa)" },
                 ]}
               />
             </Field>
