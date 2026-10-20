@@ -41,7 +41,7 @@
       "Oi! Aqui é a Spark Maxx.",
       "Vou te fazer umas perguntas rápidas pra entender o seu momento com marketing de influência. No final, você já agenda uma conversa com a Raí, do nosso time."
     ],
-    "submitAfter": "cupom",
+    "submitAfter": "frequencia",
     "pageUrlFallback": "https://sparkmaxx.com.br/plataforma-sprout-social-influencer-marketing",
     "scheduling": {
       "url": "https://calendly.com/rai-tavares-spark/new-meeting",
@@ -178,18 +178,6 @@
           "label": "Ainda não faço"
         }
       ]
-    },
-    {
-      "id": "cupom",
-      "type": "short_text",
-      "title": "Tem algum cupom? Se não tiver, é só pular.",
-      "placeholder": "Cupom",
-      "required": false,
-      "skipLabel": "Não tenho cupom",
-      "validation": {
-        "max": 40
-      },
-      "mapTo": "Cupom"
     },
     {
       "id": "gestao_campanhas",
