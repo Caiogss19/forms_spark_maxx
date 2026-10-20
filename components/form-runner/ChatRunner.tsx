@@ -476,6 +476,8 @@ export function ChatRunner({ form, embedded = false }: Props) {
             remaining={remaining ?? remainingFrom(form.steps[0]?.id ?? null)}
             started={remaining != null}
             booked={booked}
+            color={chat?.progressColor}
+            track={chat?.progressTrack}
           />
         ) : null}
 
@@ -642,11 +644,15 @@ function ProgressBar({
   remaining,
   started,
   booked,
+  color,
+  track,
 }: {
   answered: number;
   remaining: number;
   started: boolean;
   booked: boolean;
+  color?: string;
+  track?: string;
 }) {
   const total = answered + remaining;
   const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
@@ -674,10 +680,15 @@ function ProgressBar({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={answered}
-        className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--chat-bot-bg)]"
+        className="mt-2 h-1.5 overflow-hidden rounded-full"
+        style={{ background: track ?? "var(--chat-bot-bg)" }}
       >
         <motion.div
-          className="h-full rounded-full bg-[var(--chat-accent)]"
+          className="h-full rounded-full"
+          style={{
+            background: color ?? "var(--chat-accent)",
+            boxShadow: color ? `0 0 8px ${color}80` : undefined,
+          }}
           initial={false}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}

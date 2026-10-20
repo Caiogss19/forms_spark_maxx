@@ -248,6 +248,9 @@ export const ChatConfigSchema = z.object({
   submitAfter: z.string().optional(),
   // Bar under the header with how many questions are left.
   progress: z.boolean().default(true),
+  // Progress fill / track colors (default: theme primary / bot bubble).
+  progressColor: z.string().optional(),
+  progressTrack: z.string().optional(),
   // Sent as page_url whenever the host page URL doesn't name the product
   // (Referrer-Policy stripped it to the origin, or the chat sits on a
   // page that isn't the product LP). n8n picks the product and the
