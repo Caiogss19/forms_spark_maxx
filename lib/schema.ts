@@ -221,6 +221,10 @@ export const SchedulingSchema = z.object({
   ctaLabel: z.string().default("Escolher horário"),
   // Bot reply once Calendly reports the booking (inline only).
   confirmation: z.string().optional(),
+  // POSTed with the invitee as soon as Calendly reports the booking (inline
+  // only), so the booking reaches the CRM in real time: Raí's Calendly is on
+  // the free plan, which has no webhooks.
+  notifyUrl: z.url().optional(),
   // Calendly embed colors (hex without #) — honored on paid plans only.
   colors: z
     .object({

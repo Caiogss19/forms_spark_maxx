@@ -53,6 +53,7 @@
       },
       "display": "inline",
       "confirmation": "Agendado! ✳ O convite com o link do Teams chega no seu e-mail. Até lá!",
+      "notifyUrl": "https://agenda.sparkmaxx.com/api/calendly/agora",
       "colors": {
         "background": "ffffff",
         "text": "1f2c41",

@@ -9,7 +9,7 @@ import { resolveNextStep } from "@/lib/branching";
 import { validateEmail } from "@/lib/corporate-email";
 import { interpolate } from "@/lib/interpolate";
 import { formatPhoneBR } from "@/lib/mask";
-import { buildSchedulingUrl, calendlyEvent } from "@/lib/scheduling";
+import { buildSchedulingUrl, calendlyEvent, notifyBooking, scheduledInvitee } from "@/lib/scheduling";
 import { resolveTheme, type FormDefinition, type Step } from "@/lib/schema";
 import { STORAGE_KEYS, safeRemoveLocal } from "@/lib/storage";
 import { useFormStore, type AnswerValue } from "@/lib/store";
@@ -234,13 +234,16 @@ export function ChatRunner({ form, embedded = false }: Props) {
     function onMessage(e: MessageEvent) {
       if (calendlyEvent(e) !== "calendly.event_scheduled") return;
       setBooked(true);
+      const invitee = scheduledInvitee(e);
+      const notifyUrl = chat?.scheduling?.notifyUrl;
+      if (notifyUrl && invitee) notifyBooking(notifyUrl, invitee);
       window.parent?.postMessage({ type: "spark-forms:scheduled", slug: form.slug }, "*");
       const confirmation = chat?.scheduling?.confirmation;
       if (confirmation) void botSay([confirmation]);
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [bookingUrl, botSay, chat?.scheduling?.confirmation, form.slug]);
+  }, [bookingUrl, botSay, chat?.scheduling?.confirmation, chat?.scheduling?.notifyUrl, form.slug]);
 
   const ask = useCallback(
     async (id: string | null): Promise<void> => {
