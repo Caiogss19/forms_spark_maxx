@@ -53,3 +53,24 @@ export function calendlyEvent(event: MessageEvent): string | null {
     ? data.event
     : null;
 }
+
+/** The invitee URI in Calendly's `calendly.event_scheduled` payload. */
+export function scheduledInvitee(event: MessageEvent): string | null {
+  const data = event.data as { payload?: { invitee?: { uri?: unknown } } } | null;
+  const uri = data?.payload?.invitee?.uri;
+  return typeof uri === "string" && uri.startsWith("https://api.calendly.com/") ? uri : null;
+}
+
+/**
+ * Fire-and-forget notice of a fresh booking. A text/plain no-cors POST is a
+ * simple request (no preflight) and `keepalive` survives the tab closing.
+ */
+export function notifyBooking(url: string, inviteeUri: string): void {
+  void fetch(url, {
+    method: "POST",
+    mode: "no-cors",
+    keepalive: true,
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ invitee_uri: inviteeUri }),
+  }).catch(() => {});
+}
