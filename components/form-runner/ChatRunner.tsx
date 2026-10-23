@@ -8,7 +8,7 @@ import { messageFor } from "@/components/form-runner/fields/Email";
 import { resolveNextStep } from "@/lib/branching";
 import { validateEmail } from "@/lib/corporate-email";
 import { interpolate } from "@/lib/interpolate";
-import { formatPhoneBR } from "@/lib/mask";
+import { BR_DDI, formatPhoneWithDDI, nationalDigitsBR } from "@/lib/mask";
 import { buildSchedulingUrl, calendlyEvent, notifyBooking, scheduledInvitee } from "@/lib/scheduling";
 import { resolveTheme, type FormDefinition, type Step } from "@/lib/schema";
 import { STORAGE_KEYS, safeRemoveLocal } from "@/lib/storage";
@@ -268,7 +268,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
           }),
         );
       }
-      setDraft("");
+      setDraft(next.type === "phone" ? BR_DDI : "");
       setRemaining(remainingFrom(next.id));
       setStepId(next.id);
       setPhase("awaiting");
@@ -341,7 +341,7 @@ export function ChatRunner({ form, embedded = false }: Props) {
   async function onSendText() {
     if (!step) return;
     const raw = draft.trim();
-    if (!raw && !step.required) return answer(null, step.skipLabel ?? "Pular");
+    if (blankDraft(step, raw) && !step.required) return answer(null, step.skipLabel ?? "Pular");
     const error = await validateText(step, raw);
     if (error) {
       push("user", raw || "…");
@@ -610,20 +610,20 @@ export function ChatRunner({ form, embedded = false }: Props) {
                 }}
                 value={draft}
                 onChange={(e) =>
-                  setDraft(step.type === "phone" ? formatPhoneBR(e.target.value).display : e.target.value)
+                  setDraft(step.type === "phone" ? formatPhoneWithDDI(e.target.value) : e.target.value)
                 }
                 {...inputAttrs(step)}
                 placeholder={step.placeholder ?? "Escreva aqui…"}
                 className="h-11 min-w-0 flex-1 rounded-full border border-[var(--chat-input-border)] bg-[var(--chat-input-bg)] px-5 text-[15px] text-[var(--chat-fg)] outline-none placeholder:text-[var(--chat-muted)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--chat-accent)]"
               />
             )}
-            {!step.required && !draft.trim() ? (
+            {!step.required && blankDraft(step, draft) ? (
               <SkipButton label={step.skipLabel} onClick={() => void answer(null, step.skipLabel ?? "Pular")} />
             ) : (
               <button
                 type="submit"
                 aria-label="Enviar"
-                disabled={!draft.trim()}
+                disabled={blankDraft(step, draft)}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--chat-accent)] text-[var(--chat-accent-fg)] transition-opacity duration-150 disabled:opacity-35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--chat-accent)]"
               >
                 <ArrowUp className="h-[18px] w-[18px]" aria-hidden />
@@ -713,6 +713,12 @@ function SkipButton({ label, onClick }: { label?: string; onClick: () => void })
   );
 }
 
+/** Nothing typed yet: empty, or only the "+55" the phone field starts with. */
+function blankDraft(step: Step, draft: string): boolean {
+  const v = draft.trim();
+  return !v || (step.type === "phone" && !nationalDigitsBR(v));
+}
+
 function inputAttrs(step: Step): React.InputHTMLAttributes<HTMLInputElement> {
   switch (step.type) {
     case "email":
@@ -747,7 +753,7 @@ async function validateText(step: Step, value: string): Promise<string | null> {
       return remote.ok ? null : messageFor(remote.reason, step);
     }
     case "phone": {
-      const digits = value.replace(/\D/g, "");
+      const digits = nationalDigitsBR(value);
       return digits.length < 10
         ? (m.invalid ?? "Esse telefone parece incompleto. Pode mandar com DDD?")
         : null;
